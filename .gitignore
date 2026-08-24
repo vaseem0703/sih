@@ -1,0 +1,5 @@
+.venv/
+sih-venv312/
+__pycache__/
+*.pyc
+.cache/
