@@ -1,5 +1,65 @@
+# ========================================================
+# SIH 26042 — Project .gitignore
+# ========================================================
+
+# Python Virtual Environments
 .venv/
+venv/
+env/
+ENV/
 sih-venv312/
+quipus-venv312/
+
+# Python Bytecode & Caches
 __pycache__/
-*.pyc
+*.py[cod]
+*$py.class
 .cache/
+.pytest_cache/
+.mypy_cache/
+
+# Large Model Binary Weights (Downloadable via download_*.py scripts)
+models/**/*.safetensors
+models/**/*.nemo
+models/**/*.bin
+models/**/*.pt
+models/**/*.pth
+models/**/.cache/
+models/**/*.lock
+
+# Flutter & Dart Artifacts
+**/build/
+**/.dart_tool/
+**/.flutter-plugins
+**/.flutter-plugins-dependencies
+**/.pub-cache/
+**/.pub/
+
+# Android & Gradle Build Artifacts
+**/.gradle/
+**/local.properties
+**/*.apk
+**/*.aab
+
+# IDE & Editor Configurations
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/
+*.swp
+.DS_Store
+Thumbs.db
+
+# Secrets & Environment Files
+.env
+*.env
+*.pem
+*.key
+*.token
+
+# Runtime Generated Audio Logs
+test_audio/live_outputs/
+test_audio/tts_outputs/
+*.log
+live_translation_result.txt

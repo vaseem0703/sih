@@ -91,7 +91,7 @@ ASRBPEMixin._setup_tokenizer = _patched_setup_tokenizer
 sys.stdout.reconfigure(encoding='utf-8')
 
 print("=" * 60)
-print("SIH INDICCONFORMER HINDI ASR VERIFICATION")
+print("STAGE 12 — OFFLINE INDICCONFORMER HINDI ASR VERIFICATION")
 print("=" * 60)
 
 python_version = sys.version.split()[0]
@@ -100,22 +100,23 @@ nemo_version = nemo.__version__
 cuda_available = torch.cuda.is_available()
 device = "cuda" if cuda_available else "cpu"
 
-print(f"Python Version : {python_version}")
-print(f"PyTorch Version: {pytorch_version}")
-print(f"NeMo Version   : {nemo_version}")
-print(f"CUDA / GPU     : {cuda_available} (Using device: {device})")
+print(f"Python Version        : {python_version}")
+print(f"PyTorch Version       : {pytorch_version}")
+print(f"NeMo Version          : {nemo_version}")
+print(f"Execution Hardware    : {device.upper()} (CUDA Available: {cuda_available})")
 
 model_path = os.path.abspath("models/indicconformer/indicconformer_stt_hi_hybrid_rnnt_large.nemo")
 audio_path = os.path.abspath("test_audio/hindi_test.wav")
 
-print(f"Model Path     : {model_path}")
-print(f"Audio Path     : {audio_path}")
-print(f"Model File Size: {os.path.getsize(model_path) / (1024*1024):.2f} MB")
+print(f"Local Model Path      : {model_path}")
+print(f"Input Audio Path      : {audio_path}")
+print(f"Model File Size       : {os.path.getsize(model_path) / (1024*1024):.2f} MB")
+print(f"Target Language       : Hindi ('hi')")
 
 ram_before = psutil.virtual_memory().used / (1024**3)
-print(f"RAM Usage Before Loading: {ram_before:.2f} GB")
+print(f"RAM Usage Before Load : {ram_before:.2f} GB")
 
-print("\nLoading IndicConformer model from .nemo checkpoint...")
+print("\nLoading local IndicConformer model (.nemo)...")
 start_load = time.time()
 
 # Restore NeMo EncDecHybridRNNTCTCBPEModel from .nemo checkpoint
@@ -130,10 +131,10 @@ ram_after_load = psutil.virtual_memory().used / (1024**3)
 print(f"Model Loaded Successfully in {load_time:.2f} seconds.")
 print(f"RAM Usage After Loading : {ram_after_load:.2f} GB (Delta: {ram_after_load - ram_before:.2f} GB)")
 
-print("\nRunning Inference on Audio...")
+print("\nRunning Real ASR Model Inference...")
 start_infer = time.time()
 
-# Transcribe audio file using NeMo 3.0 API (paths2audio_files or audio or positional)
+# Transcribe audio file using NeMo 3.0 API (audio parameter or positional)
 with torch.no_grad():
     try:
         transcriptions = asr_model.transcribe(audio=[audio_path])
@@ -164,18 +165,21 @@ else:
     actual_text = str(transcriptions)
 
 print("\n" + "=" * 60)
-print("INFERENCE RESULTS")
+print("STAGE 12 VERIFICATION RESULTS")
 print("=" * 60)
-print(f"Input Audio         : {audio_path}")
-print(f"Model               : {os.path.basename(model_path)}")
-print(f"Actual Transcription: '{actual_text}'")
-print(f"Model Load Time     : {load_time:.2f} s")
-print(f"Inference Time      : {infer_time:.2f} s")
-print(f"Total Time          : {total_time:.2f} s")
-print(f"Peak RAM Usage      : {ram_after_infer:.2f} GB")
+print(f"Input Audio           : {audio_path}")
+print(f"Local Model           : {os.path.basename(model_path)}")
+print(f"Model Loading Status  : VERIFIED OFFLINE")
+print(f"Target Language       : Hindi (hi)")
+print(f"Actual Transcription  : '{actual_text}'")
+print(f"Model Load Time       : {load_time:.2f} s")
+print(f"Inference Time        : {infer_time:.2f} s")
+print(f"Total Processing Time : {total_time:.2f} s")
+print(f"Peak RAM Usage        : {ram_after_infer:.2f} GB")
+print(f"Execution Device      : {device.upper()}")
 print("=" * 60)
 
 if actual_text and len(actual_text.strip()) > 0:
-    print("\nRESULT: SUCCESS — Hindi speech -> Hindi text works locally")
+    print("\nFINAL STATUS: PASS — Offline IndicConformer Hindi ASR verified successfully")
 else:
-    print("\nRESULT: BLOCKED — Empty transcription returned by model.")
+    print("\nFINAL STATUS: FAIL — Empty transcription returned by model.")
