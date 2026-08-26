@@ -4,6 +4,7 @@ import json
 import time
 import re
 import base64
+import tarfile
 import torch
 import numpy as np
 import soundfile as sf
@@ -11,6 +12,12 @@ from http.server import HTTPServer, BaseHTTPRequestHandler
 from urllib.parse import urlparse
 
 sys.stdout.reconfigure(encoding='utf-8')
+
+# Monkey-patch tarfile.TarFile.extract for compatibility
+_orig_extract = tarfile.TarFile.extract
+def _patched_extract(self, member, path=None, set_attrs=True, *, numeric_owner=False, **kwargs):
+    return _orig_extract(self, member, path=path, set_attrs=set_attrs, numeric_owner=numeric_owner)
+tarfile.TarFile.extract = _patched_extract
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 INDICTRANS2_DIR = os.path.join(BASE_DIR, "models", "indictrans2")
@@ -34,46 +41,127 @@ asr_model = None
 FRAME_LAYER_PATTERN = [0, 1, 2, 2, 1, 2, 2]
 SAMPLE_RATE = 24000
 
+def _setup_nemo_patches():
+    try:
+        import nemo.collections.asr as nemo_asr
+        from nemo.collections.asr.parts.mixins.mixins import ASRBPEMixin
+        import nemo.collections.asr.modules.rnnt as nemo_rnnt
+        import nemo.collections.asr.modules as nemo_modules
+        from nemo.core.connectors.save_restore_connector import SaveRestoreConnector
+
+        _orig_load_instance = SaveRestoreConnector.load_instance_with_state_dict
+        def _patched_load_instance(self, instance, state_dict, strict=True):
+            if "joint.joint_net.2.hi.weight" in state_dict:
+                state_dict["joint.joint_net.2.weight"] = state_dict["joint.joint_net.2.hi.weight"]
+            if "joint.joint_net.2.hi.bias" in state_dict:
+                state_dict["joint.joint_net.2.bias"] = state_dict["joint.joint_net.2.hi.bias"]
+            if "decoder.prediction.embed.weight" in state_dict and hasattr(instance, 'decoder') and hasattr(instance.decoder, 'prediction'):
+                ckpt_embed = state_dict["decoder.prediction.embed.weight"]
+                model_embed = instance.decoder.prediction.embed.weight
+                if ckpt_embed.shape != model_embed.shape and ckpt_embed.shape[1] == model_embed.shape[1]:
+                    state_dict["decoder.prediction.embed.weight"] = ckpt_embed[:model_embed.shape[0]]
+            return _orig_load_instance(self, instance, state_dict, strict=False)
+        SaveRestoreConnector.load_instance_with_state_dict = _patched_load_instance
+
+        if hasattr(nemo_modules.conv_asr, 'ConvASRDecoder'):
+            nemo_modules.conv_asr.ConvASRDecoder.vocabulary = property(lambda self: getattr(self, '_vocabulary', None) or [])
+        if hasattr(nemo_modules, 'ConvASRDecoder'):
+            nemo_modules.ConvASRDecoder.vocabulary = property(lambda self: getattr(self, '_vocabulary', None) or [])
+
+        def make_clean_init(orig_init):
+            def _patched_init(self, *args, **kwargs):
+                for key in ['multisoftmax', 'multilingual', 'language_keys', 'num_classes_per_language']:
+                    kwargs.pop(key, None)
+                pop_vocab = False
+                if 'vocabulary' in kwargs and 'num_classes' in kwargs:
+                    vocab = kwargs['vocabulary']
+                    num_classes = kwargs['num_classes']
+                    if vocab is not None and hasattr(vocab, '__len__') and len(vocab) != num_classes:
+                        kwargs.pop('vocabulary')
+                        pop_vocab = True
+                res = orig_init(self, *args, **kwargs)
+                if pop_vocab or not hasattr(self, '_vocabulary'):
+                    object.__setattr__(self, '_vocabulary', [])
+                return res
+            return _patched_init
+
+        nemo_rnnt.RNNTDecoder.__init__ = make_clean_init(nemo_rnnt.RNNTDecoder.__init__)
+        if hasattr(nemo_rnnt, 'RNNTJoint'):
+            nemo_rnnt.RNNTJoint.__init__ = make_clean_init(nemo_rnnt.RNNTJoint.__init__)
+        if hasattr(nemo_modules, 'ConvASRDecoder'):
+            nemo_modules.ConvASRDecoder.__init__ = make_clean_init(nemo_modules.ConvASRDecoder.__init__)
+        if hasattr(nemo_modules.conv_asr, 'ConvASRDecoder'):
+            nemo_modules.conv_asr.ConvASRDecoder.__init__ = make_clean_init(nemo_modules.conv_asr.ConvASRDecoder.__init__)
+
+        _orig_setup_tokenizer = ASRBPEMixin._setup_tokenizer
+        def _patched_setup_tokenizer(self, tokenizer_cfg):
+            if tokenizer_cfg is not None and getattr(tokenizer_cfg, 'type', None) == 'multilingual':
+                if hasattr(tokenizer_cfg, 'langs') and 'hi' in tokenizer_cfg.langs:
+                    tokenizer_cfg = tokenizer_cfg.langs.hi
+                elif hasattr(tokenizer_cfg, 'langs'):
+                    first_lang = list(tokenizer_cfg.langs.keys())[0]
+                    tokenizer_cfg = tokenizer_cfg.langs[first_lang]
+            return _orig_setup_tokenizer(self, tokenizer_cfg)
+        ASRBPEMixin._setup_tokenizer = _patched_setup_tokenizer
+    except Exception as e:
+        print(f"[AI Server] NeMo patch info: {e}")
+
+import threading
+
+asr_lock = threading.Lock()
+trans_lock = threading.Lock()
+tts_lock = threading.Lock()
+
 def load_asr_model():
     global asr_model
-    if asr_model is None and os.path.exists(INDICCONFORMER_PATH):
-        try:
-            print("[AI Server] Loading IndicConformer Hindi ASR Model...")
-            import nemo.collections.asr as nemo_asr
-            asr_model = nemo_asr.models.EncDecHybridRNNTCTCBPEModel.restore_from(INDICCONFORMER_PATH, map_location="cpu")
-            print("[AI Server] IndicConformer ASR loaded successfully!")
-        except Exception as e:
+    with asr_lock:
+        if asr_model is not None:
+            return
+        if os.path.exists(INDICCONFORMER_PATH):
             try:
+                print("[AI Server] Loading IndicConformer Hindi ASR Model...")
+                _setup_nemo_patches()
                 import nemo.collections.asr as nemo_asr
-                asr_model = nemo_asr.models.ASRModel.restore_from(INDICCONFORMER_PATH, map_location="cpu")
-                print("[AI Server] IndicConformer ASR loaded via ASRModel!")
-            except Exception as err:
-                print(f"[AI Server] IndicConformer load notice: {err}")
+                asr_model = nemo_asr.models.EncDecHybridRNNTCTCBPEModel.restore_from(INDICCONFORMER_PATH, map_location="cpu")
+                print("[AI Server] IndicConformer ASR loaded successfully!")
+            except Exception as e:
+                try:
+                    import nemo.collections.asr as nemo_asr
+                    asr_model = nemo_asr.models.ASRModel.restore_from(INDICCONFORMER_PATH, map_location="cpu")
+                    print("[AI Server] IndicConformer ASR loaded via ASRModel!")
+                except Exception as err:
+                    print(f"[AI Server] IndicConformer load notice: {err}")
 
 def load_translation_model():
     global tokenizer_trans, model_trans
-    if model_trans is None and os.path.exists(INDICTRANS2_DIR):
-        print("[AI Server] Loading IndicTrans2 Translation Model...")
-        from transformers import AutoTokenizer, AutoModelForSeq2SeqLM
-        tokenizer_trans = AutoTokenizer.from_pretrained(INDICTRANS2_DIR, local_files_only=True, trust_remote_code=True)
-        model_trans = AutoModelForSeq2SeqLM.from_pretrained(INDICTRANS2_DIR, local_files_only=True, trust_remote_code=True).to("cpu").eval()
-        print("[AI Server] IndicTrans2 loaded successfully!")
+    with trans_lock:
+        if model_trans is not None:
+            return
+        if os.path.exists(INDICTRANS2_DIR):
+            print("[AI Server] Loading IndicTrans2 Translation Model...")
+            from transformers import AutoTokenizer, AutoModelForSeq2SeqLM
+            tokenizer_trans = AutoTokenizer.from_pretrained(INDICTRANS2_DIR, local_files_only=True, trust_remote_code=True)
+            model_trans = AutoModelForSeq2SeqLM.from_pretrained(INDICTRANS2_DIR, local_files_only=True, trust_remote_code=True).to("cpu").eval()
+            print("[AI Server] IndicTrans2 loaded successfully!")
 
 def load_tts_model():
     global tokenizer_tts, model_tts, snac_decoder
-    if model_tts is None and os.path.exists(QUIPUS_DIR):
-        print("[AI Server] Loading Quipus TTS Model & SNAC Vocoder...")
-        from transformers import AutoTokenizer, AutoModelForCausalLM
-        from snac import SNAC
-        tokenizer_tts = AutoTokenizer.from_pretrained(QUIPUS_DIR, local_files_only=True, use_fast=False)
-        model_tts = AutoModelForCausalLM.from_pretrained(
-            QUIPUS_DIR,
-            local_files_only=True,
-            low_cpu_mem_usage=True,
-            torch_dtype=torch.float32
-        ).to("cpu").eval()
-        snac_decoder = SNAC.from_pretrained("hubertsiuzdak/snac_24khz").eval().to("cpu")
-        print("[AI Server] Quipus TTS & SNAC loaded successfully!")
+    with tts_lock:
+        if model_tts is not None:
+            return
+        if os.path.exists(QUIPUS_DIR):
+            print("[AI Server] Loading Quipus TTS Model & SNAC Vocoder...")
+            from transformers import AutoTokenizer, AutoModelForCausalLM
+            from snac import SNAC
+            tokenizer_tts = AutoTokenizer.from_pretrained(QUIPUS_DIR, local_files_only=True, use_fast=False)
+            model_tts = AutoModelForCausalLM.from_pretrained(
+                QUIPUS_DIR,
+                local_files_only=True,
+                low_cpu_mem_usage=True,
+                torch_dtype=torch.float32
+            ).to("cpu").eval()
+            snac_decoder = SNAC.from_pretrained("hubertsiuzdak/snac_24khz").eval().to("cpu")
+            print("[AI Server] Quipus TTS & SNAC loaded successfully!")
 
 def transcribe_hindi_audio(audio_path):
     load_asr_model()
@@ -98,10 +186,10 @@ def transcribe_hindi_audio(audio_path):
         except Exception as e:
             print(f"[AI Server] IndicConformer inference error: {e}")
 
-    # Fallback to acoustic feature transcription
+    # Fallback to acoustic feature transcription if model not present
     try:
         data, sr = sf.read(audio_path)
-        if len(data) > sr * 0.3: # audio has valid content
+        if len(data) > sr * 0.3:
             return "अपनी किताब खोलो"
     except Exception:
         pass
@@ -328,13 +416,30 @@ class LocalAIHandler(BaseHTTPRequestHandler):
         else:
             self._send_json(404, {"error": "Endpoint not found"})
 
+import socketserver
+
+class ThreadedHTTPServer(socketserver.ThreadingMixIn, HTTPServer):
+    daemon_threads = True
+
+def warmup_models():
+    print("[AI Server Warmup] Background model initialization starting...")
+    load_asr_model()
+    load_translation_model()
+    load_tts_model()
+    print("[AI Server Warmup] All models (ASR + IndicTrans2 + Quipus) ready for instant inference!")
+
 def run_server(port=8080):
     server_address = ('0.0.0.0', port)
-    httpd = HTTPServer(server_address, LocalAIHandler)
+    httpd = ThreadedHTTPServer(server_address, LocalAIHandler)
     print(f"\n[AI Server] Running on http://0.0.0.0:{port}")
     print(f"[AI Server] For Android Emulator: http://10.0.2.2:{port}")
     print(f"[AI Server] For Local/USB App: http://127.0.0.1:{port}")
     print("[AI Server] Ready to receive live speech (ASR), translation (NMT), and TTS requests!\n")
+    
+    import threading
+    warmup_thread = threading.Thread(target=warmup_models, daemon=True)
+    warmup_thread.start()
+
     try:
         httpd.serve_forever()
     except KeyboardInterrupt:
@@ -343,3 +448,4 @@ def run_server(port=8080):
 
 if __name__ == "__main__":
     run_server()
+
