@@ -45,7 +45,7 @@ class AppHeader extends StatelessWidget {
                   ),
                   alignment: Alignment.center,
                   child: const Text(
-                    'V',
+                    'S',
                     style: TextStyle(
                       color: Colors.white,
                       fontWeight: FontWeight.w900,
@@ -60,11 +60,11 @@ class AppHeader extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: const [
                       Text(
-                        'Vernacular AI',
+                        'SIH',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
-                          fontSize: 15,
+                          fontSize: 16,
                           fontWeight: FontWeight.w900,
                           color: AppColors.navy,
                           letterSpacing: -0.3,
