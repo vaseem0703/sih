@@ -137,7 +137,7 @@ class _LiveClassScreenState extends State<LiveClassScreen> with SingleTickerProv
         _liveSpokenText = '';
       });
 
-      await widget.speechService.startListening(
+      final success = await widget.speechService.startListening(
         onResult: (spoken) {
           if (mounted) {
             setState(() {
@@ -146,7 +146,18 @@ class _LiveClassScreenState extends State<LiveClassScreen> with SingleTickerProv
             });
           }
         },
+        onStatusUpdate: (msg) {
+          if (mounted && msg.isNotEmpty && !msg.startsWith("Listening")) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text(msg), duration: const Duration(seconds: 2)),
+            );
+          }
+        },
       );
+
+      if (!success && mounted) {
+        setState(() => _isListening = false);
+      }
     }
   }
 

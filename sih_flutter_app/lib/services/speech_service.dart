@@ -18,7 +18,7 @@ class SpeechService {
       }
       return result.isGranted;
     } catch (_) {
-      return true;
+      return false;
     }
   }
 
@@ -31,14 +31,18 @@ class SpeechService {
     try {
       _isInitialized = await _speech.initialize(
         onError: (errorNotification) {
-          print('Speech Error: ${errorNotification.errorMsg}');
+          // ignore: avoid_print
+          print('STT Speech Error: ${errorNotification.errorMsg}');
         },
         onStatus: (status) {
-          print('Speech Status: $status');
+          // ignore: avoid_print
+          print('STT Speech Status: $status');
         },
+        debugLogging: true,
       );
       return _isInitialized;
     } catch (e) {
+      // ignore: avoid_print
       print('STT Init Exception: $e');
       return false;
     }
@@ -53,16 +57,17 @@ class SpeechService {
   }) async {
     final hasPerm = await requestMicPermission();
     if (!hasPerm) {
-      onStatusUpdate?.call("Microphone permission denied.");
+      onStatusUpdate?.call("Microphone permission denied. Please allow microphone in settings.");
       return false;
     }
 
     final available = await initialize();
     if (!available) {
-      onStatusUpdate?.call("Speech recognizer initializing...");
+      onStatusUpdate?.call("Speech recognizer not available on this device.");
+      return false;
     }
 
-    onStatusUpdate?.call("Listening to speech...");
+    onStatusUpdate?.call("Listening...");
 
     try {
       await _speech.listen(
@@ -73,7 +78,7 @@ class SpeechService {
         },
         localeId: localeId ?? 'hi_IN',
         listenFor: const Duration(seconds: 30),
-        pauseFor: const Duration(seconds: 4),
+        pauseFor: const Duration(seconds: 3),
         cancelOnError: false,
         partialResults: true,
       );
@@ -88,13 +93,13 @@ class SpeechService {
             }
           },
           listenFor: const Duration(seconds: 30),
-          pauseFor: const Duration(seconds: 4),
+          pauseFor: const Duration(seconds: 3),
           cancelOnError: false,
           partialResults: true,
         );
         return true;
       } catch (err) {
-        onStatusUpdate?.call("Voice input ready");
+        onStatusUpdate?.call("Could not start microphone recording.");
         return false;
       }
     }
