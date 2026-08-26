@@ -34,14 +34,8 @@ class SpeechService {
 
     try {
       _isInitialized = await _speech.initialize(
-        onError: (errorNotification) {
-          // ignore: avoid_print
-          print('STT Speech Error: ${errorNotification.errorMsg}');
-        },
-        onStatus: (status) {
-          // ignore: avoid_print
-          print('STT Speech Status: $status');
-        },
+        onError: (_) {},
+        onStatus: (_) {},
         debugLogging: false,
       );
       return true;
@@ -51,7 +45,7 @@ class SpeechService {
     }
   }
 
-  /// Starts recording real audio from the physical phone microphone
+  /// Starts recording real audio from the physical phone microphone and streams recognized speech
   Future<bool> startListening({
     required Function(String text) onResult,
     Function(String status)? onStatusUpdate,
@@ -59,44 +53,40 @@ class SpeechService {
   }) async {
     final hasPerm = await requestMicPermission();
     if (!hasPerm) {
-      onStatusUpdate?.call("Microphone permission denied. Please allow in settings.");
+      onStatusUpdate?.call("Microphone permission denied.");
       return false;
     }
 
-    onStatusUpdate?.call("Recording real microphone audio...");
+    onStatusUpdate?.call("Recording...");
 
     // Start physical audio recording to WAV
-    final path = await _audioRecorder.startRecording();
-    if (path != null) {
-      _isRecording = true;
-      return true;
-    }
+    await _audioRecorder.startRecording();
+    _isRecording = true;
 
-    // Fallback to STT engine if AudioRecorder initialization failed
+    // Start on-device speech recognizer concurrently for instant live word feedback
     try {
-      await initialize();
-      await _speech.listen(
-        onResult: (result) {
-          if (result.recognizedWords.trim().isNotEmpty) {
-            onResult(result.recognizedWords);
-          }
-        },
-        localeId: localeId ?? 'hi_IN',
-        listenFor: const Duration(seconds: 30),
-        pauseFor: const Duration(seconds: 4),
-        cancelOnError: false,
-        partialResults: true,
-      );
-      _isRecording = true;
-      return true;
-    } catch (e) {
-      onStatusUpdate?.call("Microphone unavailable.");
-      return false;
-    }
+      if (await initialize()) {
+        await _speech.listen(
+          onResult: (result) {
+            if (result.recognizedWords.trim().isNotEmpty) {
+              onResult(result.recognizedWords);
+            }
+          },
+          localeId: localeId ?? 'hi_IN',
+          listenFor: const Duration(seconds: 30),
+          pauseFor: const Duration(seconds: 3),
+          cancelOnError: false,
+          partialResults: true,
+        );
+      }
+    } catch (_) {}
+
+    return true;
   }
 
-  /// Stops physical microphone recording and sends the real audio file to IndicConformer ASR
+  /// Stops physical microphone recording and transcribes instantly
   Future<String?> stopListeningAndTranscribe({
+    String? currentRecognizedText,
     Function(String status)? onStatusUpdate,
   }) async {
     _isRecording = false;
@@ -108,31 +98,34 @@ class SpeechService {
     }
 
     final File? audioFile = await _audioRecorder.stopRecording();
+
+    // If on-device recognizer already captured words, return immediately with zero delay
+    if (currentRecognizedText != null && currentRecognizedText.trim().isNotEmpty) {
+      return currentRecognizedText.trim();
+    }
+
     if (audioFile == null || !await audioFile.exists()) {
-      return null;
+      return currentRecognizedText;
     }
 
     final fileSize = await audioFile.length();
     if (fileSize == 0) {
-      onStatusUpdate?.call("Empty audio recorded.");
-      return null;
+      return currentRecognizedText;
     }
 
-    onStatusUpdate?.call("Processing Hindi ASR (${(fileSize / 1024).toStringAsFixed(1)} KB)...");
-
-    // Send real WAV audio to Local IndicConformer ASR with 8s fast timeout
+    // Try Local AI IndicConformer with 3s fast timeout
     try {
-      final asrResult = await LocalAiBridge.transcribeAudio(audioFile);
+      final asrResult = await LocalAiBridge.transcribeAudio(audioFile)
+          .timeout(const Duration(seconds: 3));
       if (asrResult != null && asrResult.containsKey('text')) {
         final transcribedText = asrResult['text'].toString().trim();
         if (transcribedText.isNotEmpty) {
-          onStatusUpdate?.call("Hindi transcript received.");
           return transcribedText;
         }
       }
     } catch (_) {}
 
-    return null;
+    return currentRecognizedText;
   }
 
   Future<void> stopListening() async {

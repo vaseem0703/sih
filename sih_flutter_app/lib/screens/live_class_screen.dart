@@ -131,10 +131,11 @@ class _LiveClassScreenState extends State<LiveClassScreen> with SingleTickerProv
       });
 
       final asrText = await widget.speechService.stopListeningAndTranscribe(
+        currentRecognizedText: _liveSpokenText,
         onStatusUpdate: (status) {
           if (mounted && status.isNotEmpty) {
             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text(status), duration: const Duration(milliseconds: 1500)),
+              SnackBar(content: Text(status), duration: const Duration(milliseconds: 1000)),
             );
           }
         },
