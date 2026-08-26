@@ -60,12 +60,15 @@ class LanguageSelectorWidget extends StatelessWidget {
           color: isSelected ? const Color(0xFFE65100) : Colors.transparent,
           borderRadius: BorderRadius.circular(24),
         ),
-        child: Text(
-          label,
-          style: TextStyle(
-            color: isSelected ? Colors.white : const Color(0xFF475569),
-            fontWeight: FontWeight.bold,
-            fontSize: 13,
+        child: FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text(
+            label,
+            style: TextStyle(
+              color: isSelected ? Colors.white : const Color(0xFF475569),
+              fontWeight: FontWeight.bold,
+              fontSize: 13,
+            ),
           ),
         ),
       ),

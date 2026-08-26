@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
 import '../app/theme.dart';
 import '../models/translation_result.dart';

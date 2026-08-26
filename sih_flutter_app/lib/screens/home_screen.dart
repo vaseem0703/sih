@@ -63,19 +63,22 @@ class HomeScreen extends StatelessWidget {
         children: [
           Row(
             children: [
-              const Text(
-                '👋 Good Morning, Teacher!',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 18,
-                  fontWeight: FontWeight.w800,
+              const Flexible(
+                child: Text(
+                  '👋 Good Morning, Teacher!',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800,
+                  ),
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
-              const Spacer(),
+              const SizedBox(width: 8),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.15),
+                  color: Colors.white.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: const Text(
@@ -117,7 +120,7 @@ class HomeScreen extends StatelessWidget {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFFF59E0B),
                     foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(14),
                     ),
@@ -125,9 +128,12 @@ class HomeScreen extends StatelessWidget {
                   ),
                   onPressed: () => onNavigateTab(1),
                   icon: const Icon(Icons.mic_rounded, size: 18),
-                  label: const Text(
-                    'Live Classroom',
-                    style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13),
+                  label: const FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      'Live Classroom',
+                      style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13),
+                    ),
                   ),
                 ),
               ),
@@ -137,7 +143,7 @@ class HomeScreen extends StatelessWidget {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.white,
                     foregroundColor: const Color(0xFF1E1B4B),
-                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(14),
                     ),
@@ -145,9 +151,12 @@ class HomeScreen extends StatelessWidget {
                   ),
                   onPressed: () => onNavigateTab(2),
                   icon: const Icon(Icons.menu_book_rounded, size: 18),
-                  label: const Text(
-                    'All Lessons',
-                    style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13),
+                  label: const FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      'All Lessons',
+                      style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13),
+                    ),
                   ),
                 ),
               ),
@@ -163,16 +172,20 @@ class HomeScreen extends StatelessWidget {
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        Text(
-          title,
-          style: const TextStyle(
-            fontSize: 19,
-            fontWeight: FontWeight.bold,
-            color: AppColors.textHeadline,
-            letterSpacing: -0.3,
+        Expanded(
+          child: Text(
+            title,
+            style: const TextStyle(
+              fontSize: 19,
+              fontWeight: FontWeight.bold,
+              color: AppColors.textHeadline,
+              letterSpacing: -0.3,
+            ),
+            overflow: TextOverflow.ellipsis,
           ),
         ),
-        if (badgeText != null)
+        if (badgeText != null) ...[
+          const SizedBox(width: 8),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
             decoration: BoxDecoration(
@@ -188,6 +201,7 @@ class HomeScreen extends StatelessWidget {
               ),
             ),
           ),
+        ],
       ],
     );
   }
@@ -201,7 +215,7 @@ class HomeScreen extends StatelessWidget {
         border: Border.all(color: AppColors.line),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: Colors.black.withValues(alpha: 0.04),
             blurRadius: 12,
             offset: const Offset(0, 4),
           ),
@@ -227,12 +241,15 @@ class HomeScreen extends StatelessWidget {
                         borderRadius: BorderRadius.circular(20),
                         border: Border.all(color: const Color(0xFFE1D5F0)),
                       ),
-                      child: const Text(
-                        'MATHEMATICS • HINDI + SANTALI',
-                        style: TextStyle(
-                          color: Color(0xFF65349F),
-                          fontSize: 10,
-                          fontWeight: FontWeight.w800,
+                      child: const FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text(
+                          'MATHEMATICS • HINDI + SANTALI',
+                          style: TextStyle(
+                            color: Color(0xFF65349F),
+                            fontSize: 10,
+                            fontWeight: FontWeight.w800,
+                          ),
                         ),
                       ),
                     ),
@@ -286,14 +303,18 @@ class HomeScreen extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: const [
-              Text(
-                'Progress: 40% Completed',
-                style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.textSecondary,
+              Flexible(
+                child: Text(
+                  'Progress: 40% Completed',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.textSecondary,
+                  ),
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
+              SizedBox(width: 8),
               Text(
                 '10 min',
                 style: TextStyle(

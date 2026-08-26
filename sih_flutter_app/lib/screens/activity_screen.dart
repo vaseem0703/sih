@@ -299,13 +299,13 @@ class _ActivityScreenState extends State<ActivityScreen> {
           ),
         ),
         const SizedBox(height: 20),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
+        Wrap(
+          spacing: 14,
+          runSpacing: 10,
+          alignment: WrapAlignment.center,
           children: [
             _buildAnswerButton(0, '3', false),
-            const SizedBox(width: 14),
             _buildAnswerButton(1, '4', true),
-            const SizedBox(width: 14),
             _buildAnswerButton(2, '5', false),
           ],
         ),
@@ -327,13 +327,13 @@ class _ActivityScreenState extends State<ActivityScreen> {
           ),
         ),
         const SizedBox(height: 20),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
+        Wrap(
+          spacing: 12,
+          runSpacing: 10,
+          alignment: WrapAlignment.center,
           children: [
             _buildAnswerButton(0, 'घर', true),
-            const SizedBox(width: 12),
             _buildAnswerButton(1, 'पेड़', false),
-            const SizedBox(width: 12),
             _buildAnswerButton(2, 'पानी', false),
           ],
         ),
@@ -358,13 +358,13 @@ class _ActivityScreenState extends State<ActivityScreen> {
           ),
         ),
         const SizedBox(height: 20),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
+        Wrap(
+          spacing: 12,
+          runSpacing: 10,
+          alignment: WrapAlignment.center,
           children: [
             _buildAnswerButton(0, 'पौधा', true),
-            const SizedBox(width: 12),
             _buildAnswerButton(1, 'जानवर', false),
-            const SizedBox(width: 12),
             _buildAnswerButton(2, 'पानी', false),
           ],
         ),

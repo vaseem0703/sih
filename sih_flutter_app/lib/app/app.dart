@@ -106,9 +106,12 @@ class _SihAppState extends State<SihApp> {
           ttsService: _ttsService,
         );
       case 2:
-        return LessonsScreen(onStartLesson: _startActivity);
+        return LessonsScreen(
+          onStartLesson: _startActivity,
+          ttsService: _ttsService,
+        );
       case 3:
-        return const WorksheetsScreen();
+        return WorksheetsScreen(ttsService: _ttsService);
       case 4:
         return const SettingsScreen();
       default:
