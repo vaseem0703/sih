@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
 import '../app/theme.dart';
 import '../models/translation_result.dart';
@@ -126,10 +125,28 @@ class _LiveClassScreenState extends State<LiveClassScreen> with SingleTickerProv
 
   void _toggleLiveMic() async {
     if (_isListening) {
-      await widget.speechService.stopListening();
-      setState(() => _isListening = false);
-      if (_liveSpokenText.isNotEmpty) {
-        _processTeacherSpeech(_liveSpokenText);
+      setState(() {
+        _isListening = false;
+        _isTranslating = true;
+      });
+
+      final asrText = await widget.speechService.stopListeningAndTranscribe(
+        onStatusUpdate: (status) {
+          if (mounted && status.isNotEmpty) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text(status), duration: const Duration(milliseconds: 1500)),
+            );
+          }
+        },
+      );
+
+      final textToProcess = (asrText != null && asrText.isNotEmpty) ? asrText : _liveSpokenText;
+      if (textToProcess.isNotEmpty) {
+        _processTeacherSpeech(textToProcess);
+      } else {
+        if (mounted) {
+          setState(() => _isTranslating = false);
+        }
       }
     } else {
       setState(() {
