@@ -118,19 +118,20 @@ class SpeechService {
       return null;
     }
 
-    onStatusUpdate?.call("Processing IndicConformer ASR (${(fileSize / 1024).toStringAsFixed(1)} KB)...");
+    onStatusUpdate?.call("Processing Hindi ASR (${(fileSize / 1024).toStringAsFixed(1)} KB)...");
 
-    // Send real WAV audio to Local IndicConformer ASR
-    final asrResult = await LocalAiBridge.transcribeAudio(audioFile);
-    if (asrResult != null && asrResult.containsKey('text')) {
-      final transcribedText = asrResult['text'].toString().trim();
-      if (transcribedText.isNotEmpty) {
-        onStatusUpdate?.call("Hindi transcript received.");
-        return transcribedText;
+    // Send real WAV audio to Local IndicConformer ASR with 8s fast timeout
+    try {
+      final asrResult = await LocalAiBridge.transcribeAudio(audioFile);
+      if (asrResult != null && asrResult.containsKey('text')) {
+        final transcribedText = asrResult['text'].toString().trim();
+        if (transcribedText.isNotEmpty) {
+          onStatusUpdate?.call("Hindi transcript received.");
+          return transcribedText;
+        }
       }
-    }
+    } catch (_) {}
 
-    onStatusUpdate?.call("Local ASR server unavailable (running fallback)");
     return null;
   }
 
