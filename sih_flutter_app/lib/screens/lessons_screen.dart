@@ -1,11 +1,20 @@
 import 'package:flutter/material.dart';
 import '../app/theme.dart';
 import '../data/curriculum_data.dart';
+import '../services/curriculum_generator_service.dart';
+import '../services/tts_service.dart';
+import 'generated_lesson_screen.dart';
+import 'teaching_package_screen.dart';
 
 class LessonsScreen extends StatefulWidget {
-  final Function(int grade, String subject, int index) onStartLesson;
+  final Function(int grade, String subject, int index)? onStartLesson;
+  final TtsService? ttsService;
 
-  const LessonsScreen({super.key, required this.onStartLesson});
+  const LessonsScreen({
+    super.key,
+    this.onStartLesson,
+    this.ttsService,
+  });
 
   @override
   State<LessonsScreen> createState() => _LessonsScreenState();
@@ -116,14 +125,18 @@ class _LessonsScreenState extends State<LessonsScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text(
-                    'Available Lessons',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.textHeadline,
+                  const Flexible(
+                    child: Text(
+                      'Available Lessons',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.textHeadline,
+                      ),
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
+                  const SizedBox(width: 8),
                   Container(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 9,
@@ -175,7 +188,7 @@ class _LessonsScreenState extends State<LessonsScreen> {
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 180),
-        padding: const EdgeInsets.symmetric(vertical: 12),
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
         decoration: BoxDecoration(
           color: isSelected ? AppColors.navy : Colors.white,
           borderRadius: BorderRadius.circular(12),
@@ -185,7 +198,7 @@ class _LessonsScreenState extends State<LessonsScreen> {
           boxShadow: isSelected
               ? [
                   BoxShadow(
-                    color: AppColors.navy.withOpacity(0.18),
+                    color: AppColors.navy.withValues(alpha: 0.18),
                     blurRadius: 10,
                     offset: const Offset(0, 3),
                   ),
@@ -193,12 +206,15 @@ class _LessonsScreenState extends State<LessonsScreen> {
               : null,
         ),
         alignment: Alignment.center,
-        child: Text(
-          label,
-          style: TextStyle(
-            color: isSelected ? Colors.white : AppColors.navy,
-            fontWeight: FontWeight.w800,
-            fontSize: 13,
+        child: FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text(
+            label,
+            style: TextStyle(
+              color: isSelected ? Colors.white : AppColors.navy,
+              fontWeight: FontWeight.w800,
+              fontSize: 13,
+            ),
           ),
         ),
       ),
@@ -270,27 +286,86 @@ class _LessonsScreenState extends State<LessonsScreen> {
                   ),
                 ),
                 const SizedBox(height: 16),
-                ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.navy,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 20,
-                      vertical: 12,
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.navy,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 11,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                      onPressed: () {
+                        final generator = CurriculumGeneratorService();
+                        final lesson = generator.generateLessonPlan(
+                          grade: _selectedGrade,
+                          subject: _selectedSubject,
+                          topic: item,
+                          targetLanguage: 'sat_Olck',
+                        );
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (context) => TeachingPackageScreen(
+                              lesson: lesson,
+                              ttsService: widget.ttsService ?? TtsService(),
+                            ),
+                          ),
+                        );
+                      },
+                      child: const Text(
+                        'Start Lesson',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w800,
+                          fontSize: 12,
+                        ),
+                      ),
                     ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+                    OutlinedButton.icon(
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppColors.purple,
+                        side: const BorderSide(color: AppColors.purple),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 11,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                      onPressed: () {
+                        final generator = CurriculumGeneratorService();
+                        final lessonPlan = generator.generateLessonPlan(
+                          grade: _selectedGrade,
+                          subject: _selectedSubject,
+                          topic: item,
+                          targetLanguage: 'sat_Olck',
+                        );
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (context) => GeneratedLessonScreen(
+                              lesson: lessonPlan,
+                              ttsService: widget.ttsService ?? TtsService(),
+                            ),
+                          ),
+                        );
+                      },
+                      icon: const Icon(Icons.auto_awesome, size: 14),
+                      label: const Text(
+                        'Generate Lesson Plan',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12,
+                        ),
+                      ),
                     ),
-                  ),
-                  onPressed: () => widget.onStartLesson(
-                    _selectedGrade,
-                    _selectedSubject,
-                    index,
-                  ),
-                  child: const Text(
-                    'Start Lesson',
-                    style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13),
-                  ),
+                  ],
                 ),
               ],
             ),

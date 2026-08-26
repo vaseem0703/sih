@@ -31,30 +31,40 @@ class AppBottomNavBar extends StatelessWidget {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: [
-            _buildNavItem(
-              index: 0,
-              icon: Icons.home_rounded,
-              label: 'Home',
+            Expanded(
+              child: _buildNavItem(
+                index: 0,
+                icon: Icons.home_rounded,
+                label: 'Home',
+              ),
             ),
-            _buildNavItem(
-              index: 1,
-              icon: Icons.mic_rounded,
-              label: 'Live Class',
+            Expanded(
+              child: _buildNavItem(
+                index: 1,
+                icon: Icons.mic_rounded,
+                label: 'Live Class',
+              ),
             ),
-            _buildNavItem(
-              index: 2,
-              icon: Icons.school_rounded,
-              label: 'Lessons',
+            Expanded(
+              child: _buildNavItem(
+                index: 2,
+                icon: Icons.school_rounded,
+                label: 'Lessons',
+              ),
             ),
-            _buildNavItem(
-              index: 3,
-              icon: Icons.assignment_rounded,
-              label: 'Worksheets',
+            Expanded(
+              child: _buildNavItem(
+                index: 3,
+                icon: Icons.assignment_rounded,
+                label: 'Materials',
+              ),
             ),
-            _buildNavItem(
-              index: 4,
-              icon: Icons.settings_rounded,
-              label: 'Settings',
+            Expanded(
+              child: _buildNavItem(
+                index: 4,
+                icon: Icons.settings_rounded,
+                label: 'Settings',
+              ),
             ),
           ],
         ),
@@ -74,7 +84,7 @@ class AppBottomNavBar extends StatelessWidget {
       borderRadius: BorderRadius.circular(16),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
         decoration: BoxDecoration(
           color: isSelected ? AppColors.purpleLight : Colors.transparent,
           borderRadius: BorderRadius.circular(16),
@@ -88,12 +98,15 @@ class AppBottomNavBar extends StatelessWidget {
               color: isSelected ? AppColors.purple : AppColors.textMuted,
             ),
             const SizedBox(height: 3),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: isSelected ? FontWeight.w800 : FontWeight.w500,
-                color: isSelected ? AppColors.purple : AppColors.textSecondary,
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(
+                label,
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: isSelected ? FontWeight.w800 : FontWeight.w500,
+                  color: isSelected ? AppColors.purple : AppColors.textSecondary,
+                ),
               ),
             ),
           ],

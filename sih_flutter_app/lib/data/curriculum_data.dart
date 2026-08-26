@@ -2,11 +2,17 @@ class LessonContent {
   final String titleEn;
   final String titleHi;
   final String titleSat;
+  final String competencyId;
+  final String learningOutcomeEn;
+  final String learningOutcomeHi;
 
   const LessonContent({
     required this.titleEn,
     required this.titleHi,
     required this.titleSat,
+    this.competencyId = '',
+    this.learningOutcomeEn = '',
+    this.learningOutcomeHi = '',
   });
 }
 
@@ -31,16 +37,35 @@ class CurriculumData {
     1: {
       'Mathematics': [
         LessonContent(
-          titleEn: 'Numbers 1–10',
-          titleHi: 'संख्याएँ 1–10',
+          titleEn: 'Counting 1–10',
+          titleHi: 'वस्तुओं की गिनती 1–10',
           titleSat: 'ᱮᱞ ᱑–᱑᱐',
+          competencyId: 'FLN-M1-01',
+          learningOutcomeEn:
+              'Count concrete physical and visual objects from 1 to 10 with one-to-one correspondence.',
+          learningOutcomeHi:
+              '1 से 10 तक की ठोस और दृश्य वस्तुओं को एक-एक करके सही क्रम में गिनना।',
         ),
         LessonContent(
-          titleEn: 'Counting Objects',
-          titleHi: 'वस्तुओं की गिनती',
-          titleSat: 'ᱡᱤᱱᱤᱥ ᱮᱞ',
+          titleEn: 'Number Recognition 1–10',
+          titleHi: 'संख्या पहचान 1–10',
+          titleSat: 'ᱮᱞ ᱩᱨᱩᱢ ᱑–᱑᱐',
+          competencyId: 'FLN-M1-02',
+          learningOutcomeEn:
+              'Recognize, identify, and name numerals from 1 to 10 in standard and mother-tongue script.',
+          learningOutcomeHi:
+              '1 से 10 तक के संख्या अंकों को पहचानना और मातृभाषा में उनका नाम बोलना।',
         ),
-        LessonContent(titleEn: 'Shapes', titleHi: 'आकार', titleSat: 'ᱟᱠᱟᱨ'),
+        LessonContent(
+          titleEn: 'Number Matching 1–10',
+          titleHi: 'संख्या और मात्रा मिलान',
+          titleSat: 'ᱮᱞ ᱟᱨ ᱡᱤᱱᱤᱥ ᱢᱮᱞᱟᱣ',
+          competencyId: 'FLN-M1-03',
+          learningOutcomeEn:
+              'Match numerals 1–10 with their corresponding collections and quantities of objects.',
+          learningOutcomeHi:
+              '1 से 10 तक के अंकों को उनकी संगत वस्तुओं के समूह और मात्रा से मिलाना।',
+        ),
       ],
       'Language': [
         LessonContent(
@@ -80,15 +105,34 @@ class CurriculumData {
     2: {
       'Mathematics': [
         LessonContent(
-          titleEn: 'Numbers 1–10',
-          titleHi: 'संख्याएँ 1–10',
-          titleSat: 'ᱮᱞ ᱑–᱑᱐',
+          titleEn: 'Counting and Ordering 1–10',
+          titleHi: 'संख्या क्रमबद्धता 1–10',
+          titleSat: 'ᱮᱞ ᱠᱚ ᱞᱟᱭᱤᱱ ᱫᱚᱦᱚ',
+          competencyId: 'FLN-M2-01',
+          learningOutcomeEn:
+              'Count, arrange, and order numbers 1–10 in ascending and descending sequence, identifying missing numbers.',
+          learningOutcomeHi:
+              '1 से 10 तक की संख्याओं को आगे और पीछे के क्रम में लगाना तथा छूटी हुई संख्याएँ पहचानना।',
         ),
-        LessonContent(titleEn: 'Addition', titleHi: 'जोड़', titleSat: 'ᱡᱚᱲ'),
         LessonContent(
-          titleEn: 'Subtraction',
-          titleHi: 'घटाव',
-          titleSat: 'ᱠᱟᱹᱴ',
+          titleEn: 'Addition Within 10',
+          titleHi: '10 तक का जोड़',
+          titleSat: '᱑᱐ ᱦᱟᱹᱵᱤᱡ ᱡᱚᱲ',
+          competencyId: 'FLN-M2-02',
+          learningOutcomeEn:
+              'Combine two groups of objects and calculate sums up to 10 using concrete materials and symbols.',
+          learningOutcomeHi:
+              'ठोस वस्तुओं और चित्रों की सहायता से दो समूहों को मिलाकर 10 तक का जोड़ करना।',
+        ),
+        LessonContent(
+          titleEn: 'Number Comparison 1–10',
+          titleHi: 'संख्या तुलना: बड़ा, छोटा',
+          titleSat: 'ᱮᱞ ᱠᱚ ᱛᱩᱞᱟᱹᱡᱚᱠᱷᱟ',
+          competencyId: 'FLN-M2-03',
+          learningOutcomeEn:
+              'Compare two numbers or quantities up to 10 using concepts of greater than, less than, and equal to.',
+          learningOutcomeHi:
+              '10 तक की दो संख्याओं या मात्राओं की तुलना करके बड़ा, छोटा या बराबर बताना।',
         ),
       ],
       'Language': [
@@ -125,16 +169,35 @@ class CurriculumData {
     3: {
       'Mathematics': [
         LessonContent(
-          titleEn: 'Numbers up to 100',
-          titleHi: '100 तक की संख्याएँ',
-          titleSat: '᱑᱐᱐ ᱦᱟᱵᱤᱡ ᱮᱞ',
+          titleEn: 'Addition and Subtraction Within 10',
+          titleHi: 'जोड़ और घटाव (10 के भीतर)',
+          titleSat: 'ᱡᱚᱲ ᱟᱨ ᱠᱟᱹᱴ',
+          competencyId: 'FLN-M3-01',
+          learningOutcomeEn:
+              'Fluently perform both addition and subtraction operations within 10 to solve combined arithmetic tasks.',
+          learningOutcomeHi:
+              '10 के भीतर जोड़ और घटाव दोनों संक्रियाओं को धाराप्रवाह रूप से हल करना।',
         ),
         LessonContent(
-          titleEn: 'Multiplication',
-          titleHi: 'गुणा',
-          titleSat: 'ᱜᱩᱱ',
+          titleEn: 'Number Patterns',
+          titleHi: 'संख्या पैटर्न',
+          titleSat: 'ᱮᱞ ᱯᱮᱴᱟᱨᱱ',
+          competencyId: 'FLN-M3-02',
+          learningOutcomeEn:
+              'Identify, extend, and construct repeating and growing number patterns (e.g. skip counting by 2s).',
+          learningOutcomeHi:
+              'संख्याओं के दोहराव और वृद्धि पैटर्न (जैसे 2-2 की छलांग) को पहचानना और आगे बढ़ाना।',
         ),
-        LessonContent(titleEn: 'Division', titleHi: 'भाग', titleSat: 'ᱦᱟᱹᱴᱤ'),
+        LessonContent(
+          titleEn: 'Simple Word Problems Within 10',
+          titleHi: 'सरल शब्द समस्याएँ (10 के भीतर)',
+          titleSat: 'ᱥᱟᱫᱷᱟᱨᱚᱱ ᱠᱟᱛᱷᱟ ᱦᱤᱥᱟᱹᱵᱽ',
+          competencyId: 'FLN-M3-03',
+          learningOutcomeEn:
+              'Formulate mathematical operations and solve everyday contextual word problems involving numbers up to 10.',
+          learningOutcomeHi:
+              'दैनिक जीवन के संदर्भ वाले सरल व्यावहारिक एवं शाब्दिक प्रश्नों को समझकर 10 के भीतर हल करना।',
+        ),
       ],
       'Language': [
         LessonContent(
