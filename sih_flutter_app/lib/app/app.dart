@@ -58,7 +58,7 @@ class _SihAppState extends State<SihApp> {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Vernacular AI • Mother-Tongue Classroom Assistant',
+      title: 'SIH',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
       home: Scaffold(
