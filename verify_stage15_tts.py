@@ -116,12 +116,12 @@ def generate_santali_tts(speaker: str, text: str, output_path: str):
     with torch.no_grad():
         outputs = model.generate(
             **inputs,
-            max_new_tokens=512,
-            eos_token_id=audio_end_id,
+            max_new_tokens=1024,
             do_sample=True,
             temperature=0.7,
             top_p=0.9,
-            repetition_penalty=1.1
+            repetition_penalty=1.1,
+            pad_token_id=tokenizer.pad_token_id or tokenizer.eos_token_id
         )
     gen_time = time.time() - t_start
 
@@ -161,8 +161,13 @@ def generate_santali_tts(speaker: str, text: str, output_path: str):
         ])
 
     pcm = wav.squeeze().float().cpu().numpy()
-    pcm = np.clip(pcm, -1.0, 1.0)
-    sf.write(output_path, pcm, SAMPLE_RATE)
+    peak = np.max(np.abs(pcm))
+    if peak > 0:
+        pcm = (pcm / peak) * 0.95  # Scale peak to 95% full dynamic range
+
+    pcm_int16 = (pcm * 32767).astype(np.int16)
+    sf.write(output_path, pcm_int16, SAMPLE_RATE, subtype='PCM_16')
+
 
     return gen_time, pcm
 
