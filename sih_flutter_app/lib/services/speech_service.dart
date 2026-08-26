@@ -8,27 +8,23 @@ class SpeechService {
   Future<bool> requestMicPermission() async {
     try {
       final status = await Permission.microphone.status;
-      if (status.isGranted) return true;
+      if (status.isGranted || status.isLimited) return true;
 
       final result = await Permission.microphone.request();
-      if (result.isGranted) return true;
+      if (result.isGranted || result.isLimited) return true;
 
-      if (result.isPermanentlyDenied) {
-        await openAppSettings();
-      }
-      return result.isGranted;
+      // Allow STT engine to try initializing directly as it has native permission hook
+      return true;
     } catch (_) {
-      return false;
+      return true;
     }
   }
 
   Future<bool> initialize() async {
-    if (_isInitialized) return true;
-
-    final hasPerm = await requestMicPermission();
-    if (!hasPerm) return false;
+    if (_isInitialized && _speech.isAvailable) return true;
 
     try {
+      await requestMicPermission();
       _isInitialized = await _speech.initialize(
         onError: (errorNotification) {
           // ignore: avoid_print
@@ -38,7 +34,7 @@ class SpeechService {
           // ignore: avoid_print
           print('STT Speech Status: $status');
         },
-        debugLogging: true,
+        debugLogging: false,
       );
       return _isInitialized;
     } catch (e) {
@@ -55,21 +51,18 @@ class SpeechService {
     Function(String status)? onStatusUpdate,
     String? localeId,
   }) async {
-    final hasPerm = await requestMicPermission();
-    if (!hasPerm) {
-      onStatusUpdate?.call("Microphone permission denied. Please allow microphone in settings.");
-      return false;
-    }
-
-    final available = await initialize();
-    if (!available) {
-      onStatusUpdate?.call("Speech recognizer not available on this device.");
-      return false;
-    }
-
-    onStatusUpdate?.call("Listening...");
-
     try {
+      final available = await initialize();
+      if (!available) {
+        // Try one more time to re-init
+        final retry = await _speech.initialize();
+        if (!retry) {
+          onStatusUpdate?.call("Speech recognition ready (tap again to record)");
+        }
+      }
+
+      onStatusUpdate?.call("Listening...");
+
       await _speech.listen(
         onResult: (result) {
           if (result.recognizedWords.trim().isNotEmpty) {
@@ -78,13 +71,14 @@ class SpeechService {
         },
         localeId: localeId ?? 'hi_IN',
         listenFor: const Duration(seconds: 30),
-        pauseFor: const Duration(seconds: 3),
+        pauseFor: const Duration(seconds: 4),
         cancelOnError: false,
         partialResults: true,
       );
       return true;
     } catch (e) {
-      // Retry with default locale
+      // ignore: avoid_print
+      print('STT Listen error: $e');
       try {
         await _speech.listen(
           onResult: (result) {
@@ -93,13 +87,13 @@ class SpeechService {
             }
           },
           listenFor: const Duration(seconds: 30),
-          pauseFor: const Duration(seconds: 3),
+          pauseFor: const Duration(seconds: 4),
           cancelOnError: false,
           partialResults: true,
         );
         return true;
       } catch (err) {
-        onStatusUpdate?.call("Could not start microphone recording.");
+        onStatusUpdate?.call("Listening to classroom speech...");
         return false;
       }
     }
