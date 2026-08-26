@@ -30,6 +30,15 @@ print("=" * 70)
 print("  SIH 26042 — FULL REAL-TIME OFFLINE AI SERVER (ASR + NMT + TTS)")
 print("=" * 70)
 
+# Multi-threaded CPU acceleration
+num_threads = min(16, max(4, os.cpu_count() or 8))
+torch.set_num_threads(num_threads)
+try:
+    torch.set_num_interop_threads(2)
+except Exception:
+    pass
+print(f"[AI Server] PyTorch CPU Multi-threading configured with {num_threads} cores.")
+
 # Global model references
 tokenizer_trans = None
 model_trans = None
@@ -150,26 +159,28 @@ def load_tts_model():
         if model_tts is not None:
             return
         if os.path.exists(QUIPUS_DIR):
-            print("[AI Server] Loading Quipus TTS Model & SNAC Vocoder...")
-            from transformers import AutoTokenizer, AutoModelForCausalLM
-            from snac import SNAC
-            tokenizer_tts = AutoTokenizer.from_pretrained(QUIPUS_DIR, local_files_only=True, use_fast=False)
-            model_tts = AutoModelForCausalLM.from_pretrained(
-                QUIPUS_DIR,
-                local_files_only=True,
-                low_cpu_mem_usage=True,
-                torch_dtype=torch.float32
-            ).to("cpu").eval()
-            snac_decoder = SNAC.from_pretrained("hubertsiuzdak/snac_24khz").eval().to("cpu")
-            print("[AI Server] Quipus TTS & SNAC loaded successfully!")
+            try:
+                print("[AI Server] Loading Quipus TTS Model & SNAC Vocoder...")
+                from transformers import AutoTokenizer, AutoModelForCausalLM
+                from snac import SNAC
+                tokenizer_tts = AutoTokenizer.from_pretrained(QUIPUS_DIR, local_files_only=True, use_fast=False)
+                model_tts = AutoModelForCausalLM.from_pretrained(
+                    QUIPUS_DIR,
+                    local_files_only=True,
+                    dtype=torch.float32
+                ).to("cpu").eval()
+                snac_decoder = SNAC.from_pretrained("hubertsiuzdak/snac_24khz").eval().to("cpu")
+                print("[AI Server] Quipus TTS & SNAC loaded successfully!")
+            except Exception as e:
+                print(f"[AI Server] Quipus TTS note: {e}")
 
 def transcribe_hindi_audio(audio_path):
     load_asr_model()
     if asr_model is not None:
         try:
-            with torch.no_grad():
+            with torch.inference_mode():
                 try:
-                    transcriptions = asr_model.transcribe(audio=[audio_path])
+                    transcriptions = asr_model.transcribe(audio=[audio_path], batch_size=1, num_workers=0)
                 except TypeError:
                     transcriptions = asr_model.transcribe([audio_path])
                 
@@ -177,16 +188,14 @@ def transcribe_hindi_audio(audio_path):
                     transcriptions = transcriptions[0]
                 if isinstance(transcriptions, list) and len(transcriptions) > 0:
                     first = transcriptions[0]
-                    if isinstance(first, list) and len(first) > 0:
-                        return str(first[0])
-                    elif hasattr(first, 'text'):
-                        return first.text
-                    return str(first)
-                return str(transcriptions)
+                    if hasattr(first, 'text'):
+                        return first.text.strip()
+                    return str(first).strip()
+                elif isinstance(transcriptions, str):
+                    return transcriptions.strip()
         except Exception as e:
             print(f"[AI Server] IndicConformer inference error: {e}")
-
-    # Fallback to acoustic feature transcription if model not present
+    return None 
     try:
         data, sr = sf.read(audio_path)
         if len(data) > sr * 0.3:
@@ -226,11 +235,14 @@ def synthesize_santali_tts(speaker, text, filename="output.wav"):
     prompt = f"{speaker}: {text} <audio_start> "
     inputs = tokenizer_tts(prompt, return_tensors="pt").to("cpu")
     
+    # Calculate optimal token count based on sentence length for high-speed synthesis
+    dynamic_max_tokens = min(160, max(48, len(text) * 6))
+
     t0 = time.time()
     with torch.no_grad():
         outputs = model_tts.generate(
             **inputs,
-            max_new_tokens=384,
+            max_new_tokens=dynamic_max_tokens,
             do_sample=True,
             temperature=0.7,
             top_p=0.9,
@@ -420,6 +432,7 @@ import socketserver
 
 class ThreadedHTTPServer(socketserver.ThreadingMixIn, HTTPServer):
     daemon_threads = True
+    allow_reuse_address = True
 
 def warmup_models():
     print("[AI Server Warmup] Background model initialization starting...")
