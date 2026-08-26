@@ -1,34 +1,12 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../app/theme.dart';
-import '../models/translation_result.dart';
+import '../models/classroom_session.dart';
+import '../services/offline_classroom_service.dart';
 import '../services/speech_service.dart';
 import '../services/translation_service.dart';
 import '../services/tts_service.dart';
-
-class ChatMessage {
-  final String id;
-  final String inputText;
-  final String inputLangName;
-  final String translatedText;
-  final String transliteration;
-  final String targetLangName;
-  final String source;
-  final DateTime timestamp;
-  bool isPlayingAudio;
-
-  ChatMessage({
-    required this.id,
-    required this.inputText,
-    required this.inputLangName,
-    required this.translatedText,
-    required this.transliteration,
-    required this.targetLangName,
-    required this.source,
-    required this.timestamp,
-    this.isPlayingAudio = false,
-  });
-}
 
 class LiveClassScreen extends StatefulWidget {
   final SpeechService speechService;
@@ -47,46 +25,93 @@ class LiveClassScreen extends StatefulWidget {
 }
 
 class _LiveClassScreenState extends State<LiveClassScreen> {
+  final OfflineClassroomService _classroomService = OfflineClassroomService();
   final TextEditingController _textController = TextEditingController();
+  final TextEditingController _joinCodeController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
-  
-  String _sourceLang = 'hin_Deva'; // Default: Hindi
-  String _targetLang = 'sat_Olck'; // Default: Santali
-  
+
+  // Active Session State
+  ClassroomRole? _currentRole;
+  String _activeRoomCode = '';
+  String _studentPreferredLang = 'sat_Olck'; // Default: Santali
+  int _connectedStudentCount = 0;
+
+  // Stream Feed
+  final List<ClassroomBroadcast> _broadcasts = [];
+  Map<String, dynamic>? _activeRaiseHandAlert;
+  bool _canStudentSpeak = false;
+
   bool _isListening = false;
   bool _isTranslating = false;
   String _liveSpokenText = '';
 
+  // Stream Subscriptions
+  StreamSubscription? _broadcastSub;
+  StreamSubscription? _raiseHandSub;
+  StreamSubscription? _permissionSub;
+  StreamSubscription? _studentCountSub;
+
   final List<Map<String, String>> _tribalLanguages = [
-    {'code': 'hin_Deva', 'name': '🇮🇳 Hindi (हिन्दी)'},
     {'code': 'sat_Olck', 'name': '🌾 Santali (ᱥᱟᱱᱛᱟᱲᱤ)'},
     {'code': 'hoc_Wara', 'name': '🌲 Ho (ᱦᱳ)'},
     {'code': 'unr_Mund', 'name': '🏔️ Mundari (ᱢᱩᱱᱰᱟᱨᱤ)'},
   ];
 
-  // Starts 100% clean with NO hardcoded dummy messages!
-  final List<ChatMessage> _messages = [];
-
-  final List<String> _quickClassroomPrompts = [
-    'नमस्ते बच्चों',
-    'अपनी किताब खोलो',
-    'आज हम गिनती सीखेंगे',
-    'पानी पियो',
-    'बहुत अच्छा, शाबाश!',
-    'तुम्हारा नाम क्या है?',
+  final List<String> _studentQuickQuestions = [
+    'ᱱᱚᱣᱟ ᱫᱚ ᱪᱮᱫ? (What is this?)',
+    'ᱫᱟᱜ ᱧᱩᱭ ᱢᱮ ᱾ (May I drink water?)',
+    'ᱤᱧᱟᱜ ᱠᱩᱠᱞᱤ ᱢᱮᱱᱟᱜᱼᱟ ᱾ (I have a question)',
+    'ᱟᱨ ᱢᱤᱫ ᱫᱷᱟᱣ ᱞᱟᱹᱭ ᱢᱮ ᱾ (Please repeat)',
   ];
 
   @override
   void initState() {
     super.initState();
-    widget.speechService.requestMicPermission().then((_) {
-      widget.speechService.initialize();
+    widget.speechService.requestMicPermission();
+
+    _broadcastSub = _classroomService.onBroadcast.listen((bcast) {
+      if (mounted) {
+        setState(() => _broadcasts.add(bcast));
+        _scrollToBottom();
+        // Play audio if student mode
+        if (_currentRole == ClassroomRole.student) {
+          final translatedText = bcast.translations[_studentPreferredLang] ?? bcast.originalText;
+          widget.ttsService.generateSantaliSpeech(
+            santaliText: translatedText,
+            speaker: 'Phulmani',
+          );
+        }
+      }
+    });
+
+    _raiseHandSub = _classroomService.onRaiseHand.listen((alert) {
+      if (mounted && _currentRole == ClassroomRole.teacher) {
+        setState(() => _activeRaiseHandAlert = alert);
+      }
+    });
+
+    _permissionSub = _classroomService.onSpeakingPermission.listen((allowed) {
+      if (mounted && _currentRole == ClassroomRole.student && allowed) {
+        setState(() => _canStudentSpeak = true);
+        _showStudentSpeakingModal();
+      }
+    });
+
+    _studentCountSub = _classroomService.onStudentCount.listen((count) {
+      if (mounted) {
+        setState(() => _connectedStudentCount = count);
+      }
     });
   }
 
   @override
   void dispose() {
+    _broadcastSub?.cancel();
+    _raiseHandSub?.cancel();
+    _permissionSub?.cancel();
+    _studentCountSub?.cancel();
     _textController.dispose();
+    _joinCodeController.dispose();
     _scrollController.dispose();
     super.dispose();
   }
@@ -103,69 +128,169 @@ class _LiveClassScreenState extends State<LiveClassScreen> {
     });
   }
 
-  void _swapLanguages() {
+  // ==========================================
+  // TEACHER ACTIONS
+  // ==========================================
+  void _createClassroom() async {
+    setState(() => _isTranslating = true);
+    final code = await _classroomService.createClassroom();
     setState(() {
-      final temp = _sourceLang;
-      _sourceLang = _targetLang;
-      _targetLang = temp;
+      _currentRole = ClassroomRole.teacher;
+      _activeRoomCode = code;
+      _broadcasts.clear();
+      _isTranslating = false;
     });
   }
 
-  void _toggleLiveMic() async {
-    if (_isListening) {
-      await widget.speechService.stopListening();
-      setState(() => _isListening = false);
-      if (_liveSpokenText.isNotEmpty) {
-        _processAndSendText(_liveSpokenText);
-        _liveSpokenText = '';
-      }
-    } else {
-      final hasPerm = await widget.speechService.requestMicPermission();
-      if (!hasPerm && mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Please grant Microphone permission to use live voice.'),
-            backgroundColor: Colors.redAccent,
-          ),
-        );
-        return;
-      }
+  void _broadcastTeacherSpeech(String hindiText) async {
+    final clean = hindiText.trim();
+    if (clean.isEmpty) return;
 
-      setState(() {
-        _isListening = true;
-        _liveSpokenText = '';
-      });
+    _textController.clear();
+    setState(() => _isTranslating = true);
 
-      final success = await widget.speechService.startListening(
-        onResult: (spoken) {
-          setState(() {
-            _liveSpokenText = spoken;
-            _textController.text = spoken;
-          });
-        },
-        onStatusUpdate: (status) {
-          if (status.contains('denied') && mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text(status), duration: const Duration(seconds: 2)),
-            );
-          }
-        },
-      );
+    await _classroomService.broadcastTeacherSpeech(originalHindi: clean);
 
-      if (!success) {
-        // If STT engine on phone is busy or offline, show quick speech prompt chooser
-        _showQuickSpeechPicker();
-      }
+    if (mounted) {
+      setState(() => _isTranslating = false);
     }
   }
 
-  void _showQuickSpeechPicker() {
+  void _allowStudentToSpeak() {
+    if (_activeRaiseHandAlert != null) {
+      final name = _activeRaiseHandAlert!['name'] ?? 'Student';
+      _classroomService.allowStudentToSpeak(name);
+      setState(() => _activeRaiseHandAlert = null);
+    }
+  }
+
+  // ==========================================
+  // STUDENT ACTIONS
+  // ==========================================
+  void _showJoinClassDialog() {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: Row(
+            children: const [
+              Icon(Icons.login_rounded, color: AppColors.purple),
+              SizedBox(width: 8),
+              Text('Join Live Class', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('Enter 4-digit class code provided by your teacher:', style: TextStyle(fontSize: 13)),
+              const SizedBox(height: 12),
+              TextField(
+                controller: _joinCodeController,
+                keyboardType: TextInputType.number,
+                maxLength: 4,
+                style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, letterSpacing: 6),
+                textAlign: TextAlign.center,
+                decoration: InputDecoration(
+                  hintText: '8492',
+                  counterText: '',
+                  filled: true,
+                  fillColor: AppColors.cardBackground,
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: AppColors.line)),
+                ),
+              ),
+              const SizedBox(height: 14),
+              const Text('Select Your Mother Tongue:', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.textMuted)),
+              const SizedBox(height: 6),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10),
+                decoration: BoxDecoration(
+                  color: AppColors.cardBackground,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppColors.line),
+                ),
+                child: DropdownButtonHideUnderline(
+                  child: DropdownButton<String>(
+                    value: _studentPreferredLang,
+                    isExpanded: true,
+                    items: _tribalLanguages.map((l) {
+                      return DropdownMenuItem<String>(
+                        value: l['code'],
+                        child: Text(l['name']!, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                      );
+                    }).toList(),
+                    onChanged: (val) {
+                      if (val != null) {
+                        setState(() => _studentPreferredLang = val);
+                      }
+                    },
+                  ),
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.purple,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              onPressed: () async {
+                final code = _joinCodeController.text.trim();
+                if (code.isNotEmpty) {
+                  Navigator.pop(context);
+                  setState(() => _isTranslating = true);
+                  final ok = await _classroomService.joinClassroom(
+                    roomCode: code,
+                    preferredLanguage: _studentPreferredLang,
+                  );
+                  setState(() {
+                    _currentRole = ClassroomRole.student;
+                    _activeRoomCode = code;
+                    _broadcasts.clear();
+                    _isTranslating = false;
+                  });
+                  if (!ok && mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Connected in Standalone Mode over Local Network')),
+                    );
+                  }
+                }
+              },
+              child: const Text('Join Room'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _studentRaiseHand() {
+    _classroomService.studentRaiseHand(
+      studentName: 'Santali Student',
+      lang: _studentPreferredLang,
+    );
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('✋ Hand Raised! Waiting for teacher to allow speaking...'),
+        backgroundColor: Color(0xFFF59E0B),
+        duration: Duration(seconds: 2),
+      ),
+    );
+  }
+
+  void _showStudentSpeakingModal() {
     showModalBottomSheet(
       context: context,
+      isDismissible: false,
       backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
       builder: (context) {
         return Padding(
           padding: const EdgeInsets.all(20),
@@ -174,47 +299,46 @@ class _LiveClassScreenState extends State<LiveClassScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: const [
-                  Text(
-                    '🎙️ Classroom Speech Input',
-                    style: TextStyle(
-                      fontSize: 17,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.navy,
-                    ),
-                  ),
+                  Icon(Icons.mic_rounded, color: Colors.green, size: 24),
+                  SizedBox(width: 8),
+                  Text('Teacher Allowed You to Speak!', style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: AppColors.navy)),
                 ],
               ),
-              const SizedBox(height: 8),
-              const Text(
-                'Tap a classroom sentence or speak into keyboard mic:',
-                style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
-              ),
+              const SizedBox(height: 6),
+              const Text('Ask your question in Santali / your mother tongue (it will translate to Hindi for the teacher):', style: TextStyle(fontSize: 12.5, color: AppColors.textSecondary)),
               const SizedBox(height: 14),
               Wrap(
                 spacing: 8,
                 runSpacing: 8,
-                children: _quickClassroomPrompts.map((prompt) {
+                children: _studentQuickQuestions.map((q) {
                   return ActionChip(
-                    label: Text(
-                      prompt,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w700,
-                        fontSize: 13,
-                        color: AppColors.purple,
-                      ),
-                    ),
+                    label: Text(q, style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.purple, fontSize: 12.5)),
                     backgroundColor: AppColors.purpleLight,
                     side: const BorderSide(color: Color(0xFFE1D5F0)),
                     onPressed: () {
                       Navigator.pop(context);
-                      _processAndSendText(prompt);
+                      _classroomService.studentSendQuery(
+                        queryText: q,
+                        studentName: 'Santali Student',
+                        lang: _studentPreferredLang,
+                      );
+                      setState(() => _canStudentSpeak = false);
                     },
                   );
                 }).toList(),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton(
+                  onPressed: () {
+                    Navigator.pop(context);
+                    setState(() => _canStudentSpeak = false);
+                  },
+                  child: const Text('Finished Question'),
+                ),
+              ),
             ],
           ),
         );
@@ -222,363 +346,354 @@ class _LiveClassScreenState extends State<LiveClassScreen> {
     );
   }
 
-  void _processAndSendText(String text) async {
-    final clean = text.trim();
-    if (clean.isEmpty) return;
-
-    _textController.clear();
-    setState(() => _isTranslating = true);
-
-    final res = await widget.translationService.translateBidirectional(
-      text: clean,
-      srcLangCode: _sourceLang,
-      tgtLangCode: _targetLang,
-    );
-
-    final srcLangObj = _tribalLanguages.firstWhere(
-      (l) => l['code'] == _sourceLang,
-      orElse: () => {'name': 'Source'},
-    );
-
-    final tgtLangObj = _tribalLanguages.firstWhere(
-      (l) => l['code'] == _targetLang,
-      orElse: () => {'name': 'Target'},
-    );
-
-    final newMsg = ChatMessage(
-      id: DateTime.now().millisecondsSinceEpoch.toString(),
-      inputText: clean,
-      inputLangName: srcLangObj['name']!,
-      translatedText: res.santaliOlChiki,
-      transliteration: res.transliteration,
-      targetLangName: tgtLangObj['name']!,
-      source: res.source,
-      timestamp: DateTime.now(),
-    );
-
-    if (!mounted) return;
+  void _leaveClassroom() async {
+    await _classroomService.leaveClassroom();
     setState(() {
-      _messages.add(newMsg);
-      _isTranslating = false;
+      _currentRole = null;
+      _activeRoomCode = '';
+      _broadcasts.clear();
+      _activeRaiseHandAlert = null;
     });
-
-    _scrollToBottom();
-
-    // Auto-play audio
-    _playMessageAudio(newMsg);
   }
 
-  void _playMessageAudio(ChatMessage msg) async {
-    setState(() => msg.isPlayingAudio = true);
+  void _toggleLiveMic() async {
+    if (_isListening) {
+      await widget.speechService.stopListening();
+      setState(() => _isListening = false);
+      if (_liveSpokenText.isNotEmpty) {
+        _broadcastTeacherSpeech(_liveSpokenText);
+        _liveSpokenText = '';
+      }
+    } else {
+      setState(() {
+        _isListening = true;
+        _liveSpokenText = '';
+      });
 
-    await widget.ttsService.generateSantaliSpeech(
-      santaliText: msg.translatedText,
-      speaker: 'Phulmani (Female)',
-    );
-
-    if (mounted) {
-      setState(() => msg.isPlayingAudio = false);
+      await widget.speechService.startListening(
+        onResult: (spoken) {
+          setState(() {
+            _liveSpokenText = spoken;
+            _textController.text = spoken;
+          });
+        },
+      );
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        // 1. TOP BAR: SOURCE & TARGET TRIBAL LANGUAGE SELECTOR WITH SWAP BUTTON
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          decoration: const BoxDecoration(
-            color: Colors.white,
-            border: Border(bottom: BorderSide(color: AppColors.line)),
-          ),
-          child: Row(
+    if (_currentRole == null) {
+      return _buildLobbySelection();
+    } else if (_currentRole == ClassroomRole.teacher) {
+      return _buildTeacherClassroom();
+    } else {
+      return _buildStudentClassroom();
+    }
+  }
+
+  // ==========================================
+  // VIEW 1: LOBBY SELECTION
+  // ==========================================
+  Widget _buildLobbySelection() {
+    return Center(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(20),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 600),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // Source Dropdown
-              Expanded(
+              // Header Badge
+              Center(
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
                   decoration: BoxDecoration(
-                    color: AppColors.cardBackground,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: AppColors.line),
+                    color: AppColors.purpleLight,
+                    borderRadius: BorderRadius.circular(20),
                   ),
-                  child: DropdownButtonHideUnderline(
-                    child: DropdownButton<String>(
-                      value: _sourceLang,
-                      isExpanded: true,
-                      icon: const Icon(Icons.arrow_drop_down, color: AppColors.purple, size: 20),
-                      items: _tribalLanguages.map((lang) {
-                        return DropdownMenuItem<String>(
-                          value: lang['code'],
-                          child: Text(
-                            lang['name']!,
-                            style: const TextStyle(
-                              fontSize: 12.5,
-                              fontWeight: FontWeight.w700,
-                              color: AppColors.navy,
-                            ),
-                          ),
-                        );
-                      }).toList(),
-                      onChanged: (val) {
-                        if (val != null) {
-                          setState(() => _sourceLang = val);
-                        }
-                      },
-                    ),
-                  ),
-                ),
-              ),
-
-              // Swap Button
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 6),
-                child: InkWell(
-                  onTap: _swapLanguages,
-                  borderRadius: BorderRadius.circular(20),
-                  child: Container(
-                    padding: const EdgeInsets.all(7),
-                    decoration: BoxDecoration(
-                      color: AppColors.purpleLight,
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(
-                      Icons.swap_horiz_rounded,
-                      size: 20,
+                  child: const Text(
+                    '📶 100% OFFLINE MULTI-DEVICE CLASSROOM',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w800,
                       color: AppColors.purple,
+                      letterSpacing: 0.5,
                     ),
                   ),
                 ),
               ),
+              const SizedBox(height: 14),
+              const Text(
+                'Live Mother-Tongue Classroom',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.navy,
+                ),
+              ),
+              const SizedBox(height: 6),
+              const Text(
+                'Teacher speaks in Hindi — students receive live translation & audio on their own phones in Santali, Ho, or Mundari.',
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 13.5, color: AppColors.textSecondary, height: 1.4),
+              ),
+              const SizedBox(height: 28),
 
-              // Target Dropdown
-              Expanded(
+              // Card 1: Create Class (Teacher)
+              InkWell(
+                onTap: _createClassroom,
+                borderRadius: BorderRadius.circular(20),
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                  padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
-                    color: AppColors.cardBackground,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: AppColors.line),
-                  ),
-                  child: DropdownButtonHideUnderline(
-                    child: DropdownButton<String>(
-                      value: _targetLang,
-                      isExpanded: true,
-                      icon: const Icon(Icons.arrow_drop_down, color: AppColors.purple, size: 20),
-                      items: _tribalLanguages.map((lang) {
-                        return DropdownMenuItem<String>(
-                          value: lang['code'],
-                          child: Text(
-                            lang['name']!,
-                            style: const TextStyle(
-                              fontSize: 12.5,
-                              fontWeight: FontWeight.w700,
-                              color: AppColors.navy,
-                            ),
-                          ),
-                        );
-                      }).toList(),
-                      onChanged: (val) {
-                        if (val != null) {
-                          setState(() => _targetLang = val);
-                        }
-                      },
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFF1E1B4B), Color(0xFF4338CA)],
                     ),
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFF4338CA).withOpacity(0.3),
+                        blurRadius: 12,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.15),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(Icons.school_rounded, color: Colors.white, size: 30),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: const [
+                            Text(
+                              '👨‍🏫 Create Class (Teacher)',
+                              style: TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.bold),
+                            ),
+                            SizedBox(height: 4),
+                            Text(
+                              'Host a live offline session & broadcast your Hindi speech to student devices.',
+                              style: TextStyle(color: Color(0xFFE0E7FF), fontSize: 12),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const Icon(Icons.arrow_forward_ios_rounded, color: Colors.white70, size: 18),
+                    ],
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 16),
+
+              // Card 2: Join Class (Student)
+              InkWell(
+                onTap: _showJoinClassDialog,
+                borderRadius: BorderRadius.circular(20),
+                child: Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: AppColors.line),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.04),
+                        blurRadius: 10,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: AppColors.purpleLight,
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(Icons.groups_rounded, color: AppColors.purple, size: 30),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: const [
+                            Text(
+                              '🧑‍🎓 Join Class (Student)',
+                              style: TextStyle(color: AppColors.navy, fontSize: 17, fontWeight: FontWeight.bold),
+                            ),
+                            SizedBox(height: 4),
+                            Text(
+                              'Enter class code & receive live speech in Santali Ol Chiki, Ho, or Mundari.',
+                              style: TextStyle(color: AppColors.textSecondary, fontSize: 12),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const Icon(Icons.arrow_forward_ios_rounded, color: AppColors.textMuted, size: 18),
+                    ],
                   ),
                 ),
               ),
             ],
           ),
         ),
+      ),
+    );
+  }
 
-        // 2. CONVERSATION FEED OR CLEAN EMPTY STATE
+  // ==========================================
+  // VIEW 2: TEACHER CLASSROOM
+  // ==========================================
+  Widget _buildTeacherClassroom() {
+    return Column(
+      children: [
+        // Teacher Session Header Bar
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            border: Border(bottom: BorderSide(color: AppColors.line)),
+          ),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                decoration: BoxDecoration(
+                  color: AppColors.purpleLight,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Text(
+                  'ROOM: $_activeRoomCode',
+                  style: const TextStyle(fontWeight: FontWeight.w900, color: AppColors.purple, fontSize: 13),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                '👥 $_connectedStudentCount Students',
+                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.textSecondary),
+              ),
+              const Spacer(),
+              IconButton(
+                icon: const Icon(Icons.exit_to_app_rounded, color: Colors.redAccent, size: 22),
+                tooltip: 'End Class',
+                onPressed: _leaveClassroom,
+              ),
+            ],
+          ),
+        ),
+
+        // Raise Hand Alert Banner
+        if (_activeRaiseHandAlert != null)
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            color: const Color(0xFFFEF3C7),
+            child: Row(
+              children: [
+                const Icon(Icons.front_hand_rounded, color: Color(0xFFD97706), size: 22),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    '✋ ${_activeRaiseHandAlert!['name']} raised hand to ask a question!',
+                    style: const TextStyle(color: Color(0xFF92400E), fontWeight: FontWeight.bold, fontSize: 12.5),
+                  ),
+                ),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFD97706),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  ),
+                  onPressed: _allowStudentToSpeak,
+                  child: const Text('Allow to Speak', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                ),
+              ],
+            ),
+          ),
+
+        // Classroom Conversation Feed
         Expanded(
-          child: _messages.isEmpty
-              ? _buildEmptyClassroomState()
+          child: _broadcasts.isEmpty
+              ? Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: const [
+                      Icon(Icons.mic_rounded, size: 48, color: AppColors.purple),
+                      SizedBox(height: 12),
+                      Text('Classroom is Live', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.navy)),
+                      SizedBox(height: 4),
+                      Text('Tap the mic below and speak in Hindi to broadcast to all students.', style: TextStyle(color: AppColors.textSecondary, fontSize: 13)),
+                    ],
+                  ),
+                )
               : ListView.builder(
                   controller: _scrollController,
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                  itemCount: _messages.length,
+                  padding: const EdgeInsets.all(14),
+                  itemCount: _broadcasts.length,
                   itemBuilder: (context, index) {
-                    final msg = _messages[index];
+                    final bcast = _broadcasts[index];
+                    final isTeacher = bcast.senderRole == ClassroomRole.teacher;
+
                     return Padding(
-                      padding: const EdgeInsets.only(bottom: 16),
+                      padding: const EdgeInsets.only(bottom: 14),
                       child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        crossAxisAlignment: isTeacher ? CrossAxisAlignment.end : CrossAxisAlignment.start,
                         children: [
-                          // Input Message Bubble (Right)
-                          Align(
-                            alignment: Alignment.centerRight,
-                            child: Container(
-                              constraints: BoxConstraints(
-                                maxWidth: MediaQuery.of(context).size.width * 0.82,
-                              ),
-                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                              decoration: BoxDecoration(
-                                color: AppColors.purple,
-                                borderRadius: const BorderRadius.only(
-                                  topLeft: Radius.circular(16),
-                                  topRight: Radius.circular(16),
-                                  bottomLeft: Radius.circular(16),
-                                  bottomRight: Radius.circular(4),
+                          Container(
+                            constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.84),
+                            padding: const EdgeInsets.all(14),
+                            decoration: BoxDecoration(
+                              color: isTeacher ? AppColors.purple : Colors.white,
+                              borderRadius: BorderRadius.circular(16),
+                              border: isTeacher ? null : Border.all(color: AppColors.line),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(0.04),
+                                  blurRadius: 6,
+                                  offset: const Offset(0, 2),
                                 ),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: AppColors.purple.withOpacity(0.2),
-                                    blurRadius: 6,
-                                    offset: const Offset(0, 2),
-                                  ),
-                                ],
-                              ),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    '🗣️ ${msg.inputLangName}',
-                                    style: const TextStyle(
-                                      color: Colors.white70,
-                                      fontSize: 10.5,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    msg.inputText,
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w700,
-                                    ),
-                                  ),
-                                ],
-                              ),
+                              ],
                             ),
-                          ),
-
-                          const SizedBox(height: 8),
-
-                          // Vernacular AI Translation Bubble (Left)
-                          Align(
-                            alignment: Alignment.centerLeft,
-                            child: Container(
-                              constraints: BoxConstraints(
-                                maxWidth: MediaQuery.of(context).size.width * 0.88,
-                              ),
-                              padding: const EdgeInsets.all(14),
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: const BorderRadius.only(
-                                  topLeft: Radius.circular(4),
-                                  topRight: Radius.circular(18),
-                                  bottomLeft: Radius.circular(18),
-                                  bottomRight: Radius.circular(18),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  isTeacher ? '👨‍🏫 Teacher (Hindi)' : '🧑‍🎓 ${bcast.senderName} (Query)',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.bold,
+                                    color: isTeacher ? Colors.white70 : AppColors.purple,
+                                  ),
                                 ),
-                                border: Border.all(color: AppColors.line),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black.withOpacity(0.03),
-                                    blurRadius: 8,
-                                    offset: const Offset(0, 2),
+                                const SizedBox(height: 4),
+                                Text(
+                                  bcast.originalText,
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                    color: isTeacher ? Colors.white : AppColors.navy,
                                   ),
-                                ],
-                              ),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Row(
-                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      Text(
-                                        msg.targetLangName,
-                                        style: const TextStyle(
-                                          color: AppColors.purple,
-                                          fontSize: 11.5,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                      Row(
-                                        children: [
-                                          IconButton(
-                                            padding: EdgeInsets.zero,
-                                            constraints: const BoxConstraints(),
-                                            icon: const Icon(Icons.copy, size: 16, color: AppColors.textMuted),
-                                            onPressed: () {
-                                              Clipboard.setData(ClipboardData(text: msg.translatedText));
-                                              ScaffoldMessenger.of(context).showSnackBar(
-                                                const SnackBar(content: Text('Copied'), duration: Duration(seconds: 1)),
-                                              );
-                                            },
-                                          ),
-                                          const SizedBox(width: 8),
-                                          // Play Audio Button
-                                          GestureDetector(
-                                            onTap: () => _playMessageAudio(msg),
-                                            child: Container(
-                                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                              decoration: BoxDecoration(
-                                                color: AppColors.green.withOpacity(0.12),
-                                                borderRadius: BorderRadius.circular(12),
-                                              ),
-                                              child: Row(
-                                                mainAxisSize: MainAxisSize.min,
-                                                children: [
-                                                  Icon(
-                                                    msg.isPlayingAudio
-                                                        ? Icons.volume_up_rounded
-                                                        : Icons.play_arrow_rounded,
-                                                    size: 16,
-                                                    color: AppColors.green,
-                                                  ),
-                                                  const SizedBox(width: 4),
-                                                  Text(
-                                                    msg.isPlayingAudio ? 'Playing...' : 'Audio',
-                                                    style: const TextStyle(
-                                                      fontSize: 11,
-                                                      fontWeight: FontWeight.bold,
-                                                      color: AppColors.green,
-                                                    ),
-                                                  ),
-                                                ],
-                                              ),
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ],
+                                ),
+                                const SizedBox(height: 6),
+                                Text(
+                                  '🌾 Santali: ${bcast.translations['sat_Olck'] ?? ''}',
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    color: isTeacher ? const Color(0xFFE0E7FF) : AppColors.textSecondary,
                                   ),
-                                  const SizedBox(height: 6),
-                                  // Translated Script
-                                  Text(
-                                    msg.translatedText,
-                                    style: const TextStyle(
-                                      fontSize: 19,
-                                      fontWeight: FontWeight.w800,
-                                      color: AppColors.navy,
-                                      height: 1.3,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  // Transliteration
-                                  Text(
-                                    msg.transliteration,
-                                    style: const TextStyle(
-                                      fontSize: 12,
-                                      color: AppColors.textSecondary,
-                                      fontStyle: FontStyle.italic,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 6),
-                                  Text(
-                                    'Model: ${msg.source}',
-                                    style: const TextStyle(
-                                      fontSize: 9.5,
-                                      color: AppColors.purple,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                ],
-                              ),
+                                ),
+                              ],
                             ),
                           ),
                         ],
@@ -588,42 +703,7 @@ class _LiveClassScreenState extends State<LiveClassScreen> {
                 ),
         ),
 
-        // Live Listening Banner
-        if (_isListening)
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-            color: Colors.redAccent.withOpacity(0.1),
-            child: Row(
-              children: [
-                const Icon(Icons.fiber_manual_record, color: Colors.redAccent, size: 14),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    _liveSpokenText.isEmpty ? 'Listening to speech...' : _liveSpokenText,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: Colors.redAccent,
-                      fontWeight: FontWeight.w700,
-                      fontSize: 13,
-                    ),
-                  ),
-                ),
-                GestureDetector(
-                  onTap: _toggleLiveMic,
-                  child: const Text(
-                    'Done',
-                    style: TextStyle(
-                      color: Colors.redAccent,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-        // 3. BOTTOM INPUT & LIVE MIC BAR
+        // Live Mic & Input Bar
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
           decoration: const BoxDecoration(
@@ -633,7 +713,6 @@ class _LiveClassScreenState extends State<LiveClassScreen> {
           child: SafeArea(
             child: Row(
               children: [
-                // Big Animated Mic Button
                 GestureDetector(
                   onTap: _toggleLiveMic,
                   child: AnimatedContainer(
@@ -642,59 +721,25 @@ class _LiveClassScreenState extends State<LiveClassScreen> {
                     decoration: BoxDecoration(
                       color: _isListening ? Colors.redAccent : AppColors.purple,
                       shape: BoxShape.circle,
-                      boxShadow: [
-                        BoxShadow(
-                          color: (_isListening ? Colors.redAccent : AppColors.purple).withOpacity(0.3),
-                          blurRadius: 8,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
                     ),
-                    child: Icon(
-                      _isListening ? Icons.stop_rounded : Icons.mic_rounded,
-                      color: Colors.white,
-                      size: 24,
-                    ),
+                    child: Icon(_isListening ? Icons.stop_rounded : Icons.mic_rounded, color: Colors.white, size: 24),
                   ),
                 ),
                 const SizedBox(width: 10),
-                // Text Input
                 Expanded(
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 14),
-                    decoration: BoxDecoration(
-                      color: AppColors.cardBackground,
-                      borderRadius: BorderRadius.circular(24),
-                      border: Border.all(color: AppColors.line),
+                  child: TextField(
+                    controller: _textController,
+                    decoration: const InputDecoration(
+                      hintText: 'Speak or type Hindi classroom instruction...',
+                      border: InputBorder.none,
+                      isDense: true,
                     ),
-                    child: TextField(
-                      controller: _textController,
-                      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
-                      decoration: const InputDecoration(
-                        hintText: 'Speak or type...',
-                        border: InputBorder.none,
-                        isDense: true,
-                        contentPadding: EdgeInsets.symmetric(vertical: 10),
-                      ),
-                      onSubmitted: (val) {
-                        _processAndSendText(val);
-                      },
-                    ),
+                    onSubmitted: _broadcastTeacherSpeech,
                   ),
                 ),
-                const SizedBox(width: 8),
-                // Send Button
                 IconButton(
-                  onPressed: _isTranslating
-                      ? null
-                      : () => _processAndSendText(_textController.text),
-                  icon: _isTranslating
-                      ? const SizedBox(
-                          width: 16,
-                          height: 16,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Icon(Icons.send_rounded, color: AppColors.purple),
+                  onPressed: _isTranslating ? null : () => _broadcastTeacherSpeech(_textController.text),
+                  icon: const Icon(Icons.send_rounded, color: AppColors.purple),
                 ),
               ],
             ),
@@ -704,77 +749,192 @@ class _LiveClassScreenState extends State<LiveClassScreen> {
     );
   }
 
-  Widget _buildEmptyClassroomState() {
-    return Center(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: AppColors.purpleLight,
-                shape: BoxShape.circle,
+  // ==========================================
+  // VIEW 3: STUDENT CLASSROOM
+  // ==========================================
+  Widget _buildStudentClassroom() {
+    final curLangObj = _tribalLanguages.firstWhere((l) => l['code'] == _studentPreferredLang, orElse: () => _tribalLanguages.first);
+
+    return Column(
+      children: [
+        // Student Header Bar
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            border: Border(bottom: BorderSide(color: AppColors.line)),
+          ),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: AppColors.greenLight,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text('ROOM: $_activeRoomCode', style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.greenOk, fontSize: 12)),
               ),
-              child: const Icon(
-                Icons.mic_none_rounded,
-                size: 48,
-                color: AppColors.purple,
-              ),
-            ),
-            const SizedBox(height: 16),
-            const Text(
-              'Live Classroom Ready',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: AppColors.navy,
-              ),
-            ),
-            const SizedBox(height: 6),
-            const Text(
-              'Tap the purple mic below or type a phrase to start real-time tribal classroom translation.',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 13.5,
-                color: AppColors.textSecondary,
-                height: 1.4,
-              ),
-            ),
-            const SizedBox(height: 20),
-            const Text(
-              'Quick Classroom Phrases:',
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.bold,
-                color: AppColors.textMuted,
-              ),
-            ),
-            const SizedBox(height: 10),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              alignment: WrapAlignment.center,
-              children: _quickClassroomPrompts.map((p) {
-                return ActionChip(
-                  label: Text(
-                    p,
-                    style: const TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.purple,
+              const SizedBox(width: 10),
+              // Preferred Language Selector
+              Expanded(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                  decoration: BoxDecoration(
+                    color: AppColors.cardBackground,
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: AppColors.line),
+                  ),
+                  child: DropdownButtonHideUnderline(
+                    child: DropdownButton<String>(
+                      value: _studentPreferredLang,
+                      isExpanded: true,
+                      items: _tribalLanguages.map((l) {
+                        return DropdownMenuItem<String>(
+                          value: l['code'],
+                          child: Text(l['name']!, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                        );
+                      }).toList(),
+                      onChanged: (val) {
+                        if (val != null) {
+                          setState(() => _studentPreferredLang = val);
+                        }
+                      },
                     ),
                   ),
-                  backgroundColor: Colors.white,
-                  side: const BorderSide(color: AppColors.line),
-                  onPressed: () => _processAndSendText(p),
-                );
-              }).toList(),
-            ),
-          ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              IconButton(
+                icon: const Icon(Icons.exit_to_app_rounded, color: Colors.redAccent, size: 20),
+                onPressed: _leaveClassroom,
+              ),
+            ],
+          ),
         ),
-      ),
+
+        // Live Student Conversation Feed
+        Expanded(
+          child: _broadcasts.isEmpty
+              ? Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.headphones_rounded, size: 48, color: AppColors.purple),
+                      const SizedBox(height: 12),
+                      Text('Listening in ${curLangObj['name']}', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.navy)),
+                      const SizedBox(height: 4),
+                      const Text('When your teacher speaks, live translations & audio will appear here.', textAlign: TextAlign.center, style: TextStyle(color: AppColors.textSecondary, fontSize: 13)),
+                    ],
+                  ),
+                )
+              : ListView.builder(
+                  controller: _scrollController,
+                  padding: const EdgeInsets.all(14),
+                  itemCount: _broadcasts.length,
+                  itemBuilder: (context, index) {
+                    final bcast = _broadcasts[index];
+                    final translatedText = bcast.translations[_studentPreferredLang] ?? bcast.originalText;
+                    final transliteration = bcast.transliterations[_studentPreferredLang] ?? '';
+
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 14),
+                      child: Container(
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: AppColors.line),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.03),
+                              blurRadius: 6,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  bcast.senderRole == ClassroomRole.teacher ? '👨‍🏫 Teacher' : '🧑‍🎓 ${bcast.senderName}',
+                                  style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.purple),
+                                ),
+                                GestureDetector(
+                                  onTap: () {
+                                    widget.ttsService.generateSantaliSpeech(
+                                      santaliText: translatedText,
+                                      speaker: 'Phulmani',
+                                    );
+                                  },
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                    decoration: BoxDecoration(
+                                      color: AppColors.green.withOpacity(0.12),
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                    child: Row(
+                                      children: const [
+                                        Icon(Icons.volume_up_rounded, size: 14, color: AppColors.green),
+                                        SizedBox(width: 4),
+                                        Text('Audio', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.green)),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 8),
+                            // Translated Mother-Tongue
+                            Text(
+                              translatedText,
+                              style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w800, color: AppColors.navy, height: 1.3),
+                            ),
+                            if (transliteration.isNotEmpty) ...[
+                              const SizedBox(height: 4),
+                              Text(transliteration, style: const TextStyle(fontSize: 12, color: AppColors.textSecondary, fontStyle: FontStyle.italic)),
+                            ],
+                            const SizedBox(height: 6),
+                            Text('Original: "${bcast.originalText}"', style: const TextStyle(fontSize: 10.5, color: AppColors.textMuted)),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                ),
+        ),
+
+        // Student Raise Hand Bottom Bar
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            border: Border(top: BorderSide(color: AppColors.line)),
+          ),
+          child: SafeArea(
+            child: SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFF59E0B),
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  elevation: 2,
+                ),
+                onPressed: _studentRaiseHand,
+                icon: const Icon(Icons.front_hand_rounded, size: 22),
+                label: const Text(
+                  '✋ Raise Hand to Ask Question (हाथ उठाएँ)',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
