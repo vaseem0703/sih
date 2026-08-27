@@ -7,8 +7,8 @@ class LocalAiBridge {
   static String get activeBaseUrl => _workingUrl ?? 'http://127.0.0.1:8080';
   static final List<String> candidateUrls = [
     'http://127.0.0.1:8080',
-    'http://192.168.31.187:8080',
     'http://10.0.2.2:8080',
+    'http://localhost:8080',
   ];
 
   static Future<String?> getWorkingBaseUrl({bool forceRefresh = false}) async {
@@ -19,7 +19,7 @@ class LocalAiBridge {
       try {
         final response = await http
             .get(Uri.parse('$url/status'))
-            .timeout(const Duration(milliseconds: 600));
+            .timeout(const Duration(milliseconds: 3000));
         if (response.statusCode == 200) {
           final data = jsonDecode(response.body);
           if (data['status'] == 'online') {
