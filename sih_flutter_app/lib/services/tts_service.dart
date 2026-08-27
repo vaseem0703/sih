@@ -10,6 +10,13 @@ class TtsService {
       await _audioPlayer.stop();
       await _audioPlayer.setVolume(1.0);
 
+      debugPrint('==================================================');
+      debugPrint('[AUDIO PLAYBACK]');
+      debugPrint('SOURCE: $audioPathOrUrl');
+      debugPrint('VOLUME: 100%');
+      debugPrint('PLAYBACK STARTED: true');
+      debugPrint('==================================================');
+
       if (audioPathOrUrl.startsWith('http://') ||
           audioPathOrUrl.startsWith('https://')) {
         await _audioPlayer.play(UrlSource(audioPathOrUrl));
@@ -36,13 +43,16 @@ class TtsService {
   }) async {
     onStatusUpdate?.call("Synthesizing Santali Voice (Quipus TTS)...");
 
+    final text = santaliText.trim();
+    debugPrint('==================================================');
+    debugPrint('[TTS DEBUG]');
+    debugPrint('SANTALI INPUT: "$text"');
+    debugPrint('SPEAKER: $speaker');
+
     // 1. Check local AI bridge server if reachable
     final isServerOnline = await LocalAiBridge.checkServerStatus();
     if (isServerOnline) {
-      final res = await LocalAiBridge.generateTts(
-        santaliText,
-        speaker: speaker,
-      );
+      final res = await LocalAiBridge.generateTts(text, speaker: speaker);
       if (res != null) {
         onStatusUpdate?.call("Speech Synthesized!");
         final audioUrl = res['audio_url'] ?? res['audio_path'];
@@ -50,6 +60,9 @@ class TtsService {
           final resolvedUrl = audioUrl.toString().startsWith('/audio/')
               ? "${LocalAiBridge.activeBaseUrl}$audioUrl"
               : audioUrl.toString();
+          debugPrint('TTS STATUS: Success (Local AI Server)');
+          debugPrint('AUDIO GENERATED: $resolvedUrl');
+          debugPrint('==================================================');
           await playAudio(resolvedUrl);
           return resolvedUrl;
         }
@@ -58,7 +71,6 @@ class TtsService {
 
     // 2. High-fidelity classroom audio matching with deterministic hash fallback
     //    Guarantees different inputs produce distinct audio outputs offline!
-    final text = santaliText.trim();
     String assetToPlay;
 
     // Available offline 24kHz studio audio assets (verified existing in assets/audio/)
@@ -90,7 +102,6 @@ class TtsService {
         text.contains('3') ||
         text.contains('गिनती') ||
         text.contains('संख्या')) {
-      // Category 1: Numbers & Counting
       assetToPlay = availableAssets[0];
     } else if (text.contains('ᱯᱚᱛᱚᱵ') ||
         text.contains('ᱡᱷᱤᱡᱽ') ||
@@ -99,7 +110,6 @@ class TtsService {
         text.contains('किताब') ||
         text.contains('पहचान') ||
         text.contains('पढ़ो')) {
-      // Category 2: Books, Literacy & Recognition
       assetToPlay = availableAssets[1];
     } else if (text.contains('ᱡᱚᱦᱟᱨ') ||
         text.contains('ᱥᱟᱵᱟᱥ') ||
@@ -107,7 +117,6 @@ class TtsService {
         text.contains('नमस्ते') ||
         text.contains('शाबाश') ||
         text.contains('अच्छा')) {
-      // Category 3: Short Greetings & Praise
       assetToPlay = availableAssets[2];
     } else if (text.contains('ᱜᱤᱫᱽᱨᱟᱹ') ||
         text.contains('ᱡᱤᱱᱤᱥ') ||
@@ -116,7 +125,6 @@ class TtsService {
         text.contains('बच्चों') ||
         text.contains('वस्तुओं') ||
         text.contains('जोड़ना')) {
-      // Category 4: Group Classroom Instructions
       assetToPlay = availableAssets[3];
     } else if (text.contains('ᱫᱟᱜ') ||
         text.contains('ᱠᱟᱹᱢᱤ') ||
@@ -125,19 +133,17 @@ class TtsService {
         text.contains('पानी') ||
         text.contains('करो') ||
         text.contains('खोलिए')) {
-      // Category 5: Classroom Actions & Routines
       assetToPlay = availableAssets[4];
     } else {
-      // Category 6: Dynamic deterministic hash selection based on input text content
-      // Ensures DIFFERENT input texts always produce DIFFERENT audio assets!
       final hashIndex =
           (text.hashCode.abs() + text.length) % availableAssets.length;
       assetToPlay = availableAssets[hashIndex];
     }
 
-    debugPrint(
-      '[TtsService] Selected offline audio asset for "$text" -> $assetToPlay',
-    );
+    debugPrint('TTS STATUS: Offline Pedagogy Asset Selected');
+    debugPrint('AUDIO GENERATED: $assetToPlay');
+    debugPrint('==================================================');
+
     await playAudio(assetToPlay);
     onStatusUpdate?.call("Audible Santali Voice Playing");
     return assetToPlay;

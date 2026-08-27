@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import '../models/translation_result.dart';
 import 'local_ai_bridge.dart';
 
@@ -122,6 +123,11 @@ class TranslationService {
     final stopwatch = Stopwatch()..start();
     final cleanInput = text.trim();
 
+    debugPrint('==================================================');
+    debugPrint('[TRANSLATION DEBUG]');
+    debugPrint('INPUT HINDI: "$cleanInput"');
+    debugPrint('SOURCE LANG: $srcLangCode | TARGET LANG: $tgtLangCode');
+
     // 1. Try local AI Python IndicTrans2 server if Santali
     if (srcLangCode == 'hin_Deva' && tgtLangCode == 'sat_Olck') {
       final isServerOnline = await LocalAiBridge.checkServerStatus();
@@ -133,9 +139,12 @@ class TranslationService {
         );
         if (res != null && res['translation'] != null) {
           stopwatch.stop();
+          final outText = res['translation'].toString().trim();
+          debugPrint('OUTPUT SANTALI (IndicTrans2): "$outText"');
+          debugPrint('==================================================');
           return TranslationResult(
             originalHindi: cleanInput,
-            santaliOlChiki: res['translation'],
+            santaliOlChiki: outText,
             transliteration: res['transliteration'] ?? 'Ol Chiki Output',
             latencySeconds: stopwatch.elapsedMilliseconds / 1000.0,
             isOffline: true,
@@ -145,43 +154,25 @@ class TranslationService {
       }
     }
 
-    // 2. Tribal Dictionary matching
+    // 2. Exact Tribal Dictionary matching (No fuzzy substring collision)
     final langDict =
         _tribalDictionary[tgtLangCode] ?? _tribalDictionary['sat_Olck']!;
     String translated = langDict[cleanInput] ?? '';
 
-    if (translated.isEmpty) {
-      for (final key in langDict.keys) {
-        if (key != 'name' &&
-            (cleanInput.contains(key) || key.contains(cleanInput))) {
-          translated = langDict[key]!;
-          break;
-        }
-      }
-    }
-
+    // 3. Fallback: Direct Phonetic Devanagari -> Ol Chiki script transliteration
     if (translated.isEmpty) {
       if (tgtLangCode == 'sat_Olck') {
         translated = _devanagariToOlChiki(cleanInput);
-      } else if (tgtLangCode == 'hoc_Wara') {
-        translated = 'ᱱᱮ ᱫᱚ ᱤᱛᱩ ᱨᱮᱱᱟᱜ ᱠᱟᱡᱤ ᱛᱟᱱᱟ ᱾';
-      } else if (tgtLangCode == 'unr_Mund') {
-        translated = 'ᱱᱤ ᱫᱚ ᱥᱮᱬᱟ ᱨᱮᱱᱟᱜ ᱠᱟᱡᱤ ᱛᱟᱱᱟ ᱾';
       } else {
-        translated = cleanInput;
+        translated = _devanagariToOlChiki(cleanInput);
       }
     }
 
-    await Future.delayed(const Duration(milliseconds: 150));
+    await Future.delayed(const Duration(milliseconds: 50));
     stopwatch.stop();
 
-    final modelLabel = tgtLangCode == 'sat_Olck'
-        ? 'LOCAL_OFFLINE_VERIFIED (IndicTrans2)'
-        : 'TRIBAL_PEDAGOGY_BRIDGE (${tgtLangCode == 'hoc_Wara'
-              ? 'Ho'
-              : tgtLangCode == 'unr_Mund'
-              ? 'Mundari'
-              : 'Hindi'})';
+    debugPrint('OUTPUT SANTALI (Offline Engine): "$translated"');
+    debugPrint('==================================================');
 
     return TranslationResult(
       originalHindi: cleanInput,
@@ -195,7 +186,7 @@ class TranslationService {
           : 'Hindi (Devanagari)',
       latencySeconds: stopwatch.elapsedMilliseconds / 1000.0,
       isOffline: true,
-      source: modelLabel,
+      source: 'LOCAL_OFFLINE_INDIC_TRANSLATION',
     );
   }
 

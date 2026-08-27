@@ -129,6 +129,14 @@ class _LiveClassScreenState extends State<LiveClassScreen>
         });
         _scrollToBottom();
 
+        debugPrint('==================================================');
+        debugPrint('[PIPELINE DEBUG]');
+        debugPrint('ASR HINDI TEXT: "$clean"');
+        debugPrint('TRANSLATION REQUEST: "$clean"');
+        debugPrint('TRANSLATION RESPONSE: "${result.santaliOlChiki}"');
+        debugPrint('SANTALI TEXT: "${result.santaliOlChiki}"');
+        debugPrint('==================================================');
+
         // Automatically speak aloud via phone speaker / classroom sound system
         if (_autoPlaySpeaker) {
           widget.ttsService.generateSantaliSpeech(
