@@ -12,7 +12,6 @@ class SpeechService {
   bool _sttInitialized = false;
   bool _isWavRecording = false;
   String? _hindiLocaleId;
-  Function(String status)? _globalStatusCallback;
 
   bool get isListening => _isWavRecording || _speech.isListening;
 
