@@ -160,18 +160,22 @@ class _LiveClassScreenState extends State<LiveClassScreen>
         },
       );
 
-      debugPrint('[ASR DEBUG] UI RECEIVED TEXT = "$asrText"');
+      debugPrint('[FLUTTER UI] TEXT RECEIVED: "$asrText"');
       if (mounted) setState(() => _micStatusMessage = '');
 
-      final textToProcess = (asrText != null && asrText.isNotEmpty)
-          ? asrText
-          : _liveSpokenText;
-      if (textToProcess.isNotEmpty) {
-        debugPrint('[ASR DEBUG] UI TEXT UPDATED = "$textToProcess"');
-        _processTeacherSpeech(textToProcess);
+      if (asrText != null && asrText.isNotEmpty) {
+        debugPrint('[FLUTTER UI] TEXT ASSIGNED: "$asrText"');
+        debugPrint('[FLUTTER UI] TEXT DISPLAYED: "$asrText"');
+        _processTeacherSpeech(asrText);
       } else {
-        debugPrint('[ASR DEBUG] UI RESULT IS EMPTY — NO TEXT SHOWN');
-        if (mounted) setState(() => _isTranslating = false);
+        debugPrint('[FLUTTER UI] RESULT IS EMPTY — CLEARING DISPLAY');
+        if (mounted) {
+          setState(() {
+            _isTranslating = false;
+            _textController.text = '';
+            _micStatusMessage = 'Speech not recognized. Try speaking louder.';
+          });
+        }
       }
     } else {
       // ── START path ─────────────────────────────────────────────

@@ -188,6 +188,18 @@ class OnDeviceAsrService {
     }
   }
 
+  String _computeAudioHash(List<int> bytes) {
+    BigInt hash = BigInt.parse('14695981039346656037');
+    final fnvPrime = BigInt.parse('1099511628211');
+    final mask64 = (BigInt.one << 64) - BigInt.one;
+
+    for (int i = 0; i < bytes.length; i++) {
+      hash = hash ^ BigInt.from(bytes[i]);
+      hash = (hash * fnvPrime) & mask64;
+    }
+    return hash.toRadixString(16).padLeft(16, '0');
+  }
+
   Future<String?> transcribeWavFile(File audioFile) async {
     if (!isReady) {
       debugPrint('[OnDeviceAsrService] Recognizer not ready!');
@@ -196,24 +208,46 @@ class OnDeviceAsrService {
 
     sherpa_onnx.OfflineStream? stream;
     try {
+      final recId = DateTime.now().millisecondsSinceEpoch.toString();
       final len = await audioFile.length();
-      debugPrint(
-        '[ON-DEVICE ASR] TRANSCRIBE START: ${audioFile.path} ($len bytes)',
-      );
-
       final bytes = await audioFile.readAsBytes();
       if (bytes.length <= 44) return null;
 
-      // Extract 16-bit PCM samples after 44-byte WAV header
       final pcmBytes = bytes.sublist(44);
       final sampleCount = pcmBytes.length ~/ 2;
       final samples = Float32List(sampleCount);
 
+      double sumSq = 0.0;
+      int peak = 0;
+      int minSample = 0;
+      int maxSample = 0;
+
       for (int i = 0; i < sampleCount; i++) {
         int sample = pcmBytes[i * 2] | (pcmBytes[i * 2 + 1] << 8);
         if (sample > 32767) sample -= 65536;
+        final absSample = sample.abs();
+        if (absSample > peak) peak = absSample;
+        if (sample < minSample) minSample = sample;
+        if (sample > maxSample) maxSample = sample;
+        sumSq += (sample.toDouble() * sample.toDouble());
         samples[i] = sample / 32768.0;
       }
+
+      final rms = sampleCount > 0 ? (sumSq / sampleCount) : 0.0;
+      final audioHash = _computeAudioHash(pcmBytes);
+
+      debugPrint('==================================================');
+      debugPrint('[ASR DIAGNOSTIC]');
+      debugPrint('RECORDING ID: $recId');
+      debugPrint('AUDIO PATH: ${audioFile.path}');
+      debugPrint('FILE SIZE: $len bytes');
+      debugPrint('SAMPLE COUNT: $sampleCount');
+      debugPrint('DURATION: ${(sampleCount / 16000.0).toStringAsFixed(2)}s');
+      debugPrint('AUDIO RMS: ${rms.toStringAsFixed(2)}');
+      debugPrint('PEAK AMPLITUDE: $peak');
+      debugPrint('MIN SAMPLE: $minSample | MAX SAMPLE: $maxSample');
+      debugPrint('AUDIO HASH: $audioHash');
+      debugPrint('==================================================');
 
       stream = _recognizer!.createStream();
       stream.acceptWaveform(samples: samples, sampleRate: 16000);
@@ -221,7 +255,15 @@ class OnDeviceAsrService {
 
       final result = _recognizer!.getResult(stream);
       final text = result.text.trim();
-      debugPrint('[ON-DEVICE ASR] SHERPA-ONNX TRANSCRIBED: "$text"');
+
+      debugPrint('==================================================');
+      debugPrint('[INDICCONFORMER RESULT]');
+      debugPrint('RECORDING ID: $recId');
+      debugPrint('RAW RESULT: "$text"');
+      debugPrint('FINAL TEXT: "$text"');
+      debugPrint('TEXT LENGTH: ${text.length}');
+      debugPrint('==================================================');
+
       return text.isNotEmpty ? text : null;
     } catch (e, stackTrace) {
       debugPrint('[ON-DEVICE ASR] Transcribe error: $e\n$stackTrace');
