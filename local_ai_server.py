@@ -92,6 +92,7 @@ def translate_hindi_to_santali(text):
             **inputs,
             num_beams=4,
             max_length=256,
+            use_cache=False,
         )
     
     raw_output = tokenizer_trans.batch_decode(gen_tokens, skip_special_tokens=True)[0].strip()
