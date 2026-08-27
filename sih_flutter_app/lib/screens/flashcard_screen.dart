@@ -166,7 +166,10 @@ class _FlashcardScreenState extends State<FlashcardScreen> {
             TextButton.icon(
               style: TextButton.styleFrom(
                 foregroundColor: AppColors.purple,
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
+                ),
               ),
               onPressed: () => Navigator.of(context).pop(),
               icon: const Icon(Icons.menu_book, size: 16),
@@ -274,7 +277,10 @@ class _FlashcardScreenState extends State<FlashcardScreen> {
                     ? AppColors.greenOk
                     : AppColors.purple,
                 foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 10,
+                ),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(20),
                 ),
@@ -286,7 +292,10 @@ class _FlashcardScreenState extends State<FlashcardScreen> {
               ),
               label: Text(
                 _isPlayingAudio ? 'Playing...' : 'Pronounce (ᱨᱚᱲ ᱟᱸᱡᱚᱢ)',
-                style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12),
+                style: const TextStyle(
+                  fontWeight: FontWeight.w700,
+                  fontSize: 12,
+                ),
               ),
             ),
           ],

@@ -50,19 +50,61 @@ class TranslationService {
 
   static String _devanagariToOlChiki(String text) {
     const map = {
-      'अ': 'ᱟ', 'आ': 'ᱟ', 'ा': 'ᱟ',
-      'इ': 'ᱤ', 'ई': 'ᱤ', 'ि': 'ᱤ', 'ी': 'ᱤ',
-      'उ': 'ᱩ', 'ऊ': 'ᱩ', 'ु': 'ᱩ', 'ू': 'ᱩ',
-      'ए': 'ᱮ', 'े': 'ᱮ', 'ऐ': 'ᱮ', 'ै': 'ᱮ',
-      'ओ': 'ᱳ', 'ो': 'ᱳ', 'औ': 'ᱳ', 'ौ': 'ᱳ',
-      'क': 'ᱠ', 'ख': 'ᱠᱷ', 'ग': 'ᱜ', 'घ': 'ᱜᱷ',
-      'च': 'ᱪ', 'छ': 'ᱪᱷ', 'ज': 'ᱡ', 'झ': 'ᱡᱷ',
-      'ट': 'ᱛ', 'ठ': 'ᱛᱷ', 'ड': 'ᱫ', 'ढ': 'ᱫᱷ', 'ण': 'ᱱ',
-      'त': 'ᱛ', 'थ': 'ᱛᱷ', 'द': 'ᱫ', 'ध': 'ᱫᱷ', 'न': 'ᱱ',
-      'प': 'ᱯ', 'फ': 'ᱯᱷ', 'ब': 'ᱵ', 'भ': 'ᱵᱷ', 'म': 'ᱢ',
-      'य': 'ᱭ', 'र': 'ᱨ', 'ल': 'ᱞ', 'व': 'ᱣ',
-      'श': 'ᱥ', 'ष': 'ᱥ', 'स': 'ᱥ', 'ह': 'ᱦ',
-      'ं': 'ᱝ', 'ः': 'ᱦ', '़': 'ᱹ', '।': '᱾', '.': '᱾',
+      'अ': 'ᱟ',
+      'आ': 'ᱟ',
+      'ा': 'ᱟ',
+      'इ': 'ᱤ',
+      'ई': 'ᱤ',
+      'ि': 'ᱤ',
+      'ी': 'ᱤ',
+      'उ': 'ᱩ',
+      'ऊ': 'ᱩ',
+      'ु': 'ᱩ',
+      'ू': 'ᱩ',
+      'ए': 'ᱮ',
+      'े': 'ᱮ',
+      'ऐ': 'ᱮ',
+      'ै': 'ᱮ',
+      'ओ': 'ᱳ',
+      'ो': 'ᱳ',
+      'औ': 'ᱳ',
+      'ौ': 'ᱳ',
+      'क': 'ᱠ',
+      'ख': 'ᱠᱷ',
+      'ग': 'ᱜ',
+      'घ': 'ᱜᱷ',
+      'च': 'ᱪ',
+      'छ': 'ᱪᱷ',
+      'ज': 'ᱡ',
+      'झ': 'ᱡᱷ',
+      'ट': 'ᱛ',
+      'ठ': 'ᱛᱷ',
+      'ड': 'ᱫ',
+      'ढ': 'ᱫᱷ',
+      'ण': 'ᱱ',
+      'त': 'ᱛ',
+      'थ': 'ᱛᱷ',
+      'द': 'ᱫ',
+      'ध': 'ᱫᱷ',
+      'न': 'ᱱ',
+      'प': 'ᱯ',
+      'फ': 'ᱯᱷ',
+      'ब': 'ᱵ',
+      'भ': 'ᱵᱷ',
+      'म': 'ᱢ',
+      'य': 'ᱭ',
+      'र': 'ᱨ',
+      'ल': 'ᱞ',
+      'व': 'ᱣ',
+      'श': 'ᱥ',
+      'ष': 'ᱥ',
+      'स': 'ᱥ',
+      'ह': 'ᱦ',
+      'ं': 'ᱝ',
+      'ः': 'ᱦ',
+      '़': 'ᱹ',
+      '।': '᱾',
+      '.': '᱾',
     };
     final buf = StringBuffer();
     for (int i = 0; i < text.length; i++) {
@@ -104,12 +146,14 @@ class TranslationService {
     }
 
     // 2. Tribal Dictionary matching
-    final langDict = _tribalDictionary[tgtLangCode] ?? _tribalDictionary['sat_Olck']!;
+    final langDict =
+        _tribalDictionary[tgtLangCode] ?? _tribalDictionary['sat_Olck']!;
     String translated = langDict[cleanInput] ?? '';
 
     if (translated.isEmpty) {
       for (final key in langDict.keys) {
-        if (key != 'name' && (cleanInput.contains(key) || key.contains(cleanInput))) {
+        if (key != 'name' &&
+            (cleanInput.contains(key) || key.contains(cleanInput))) {
           translated = langDict[key]!;
           break;
         }
@@ -133,7 +177,11 @@ class TranslationService {
 
     final modelLabel = tgtLangCode == 'sat_Olck'
         ? 'LOCAL_OFFLINE_VERIFIED (IndicTrans2)'
-        : 'TRIBAL_PEDAGOGY_BRIDGE (${tgtLangCode == 'hoc_Wara' ? 'Ho' : tgtLangCode == 'unr_Mund' ? 'Mundari' : 'Hindi'})';
+        : 'TRIBAL_PEDAGOGY_BRIDGE (${tgtLangCode == 'hoc_Wara'
+              ? 'Ho'
+              : tgtLangCode == 'unr_Mund'
+              ? 'Mundari'
+              : 'Hindi'})';
 
     return TranslationResult(
       originalHindi: cleanInput,
@@ -141,10 +189,10 @@ class TranslationService {
       transliteration: tgtLangCode == 'sat_Olck'
           ? 'Santali (Ol Chiki)'
           : tgtLangCode == 'hoc_Wara'
-              ? 'Ho (Warang Citi)'
-              : tgtLangCode == 'unr_Mund'
-                  ? 'Mundari'
-                  : 'Hindi (Devanagari)',
+          ? 'Ho (Warang Citi)'
+          : tgtLangCode == 'unr_Mund'
+          ? 'Mundari'
+          : 'Hindi (Devanagari)',
       latencySeconds: stopwatch.elapsedMilliseconds / 1000.0,
       isOffline: true,
       source: modelLabel,
@@ -163,6 +211,9 @@ class TranslationService {
   }
 
   Future<TranslationResult> translateHindiToSantali(String hindiText) {
-    return translateHindiToTarget(hindiText: hindiText, targetLangCode: 'sat_Olck');
+    return translateHindiToTarget(
+      hindiText: hindiText,
+      targetLangCode: 'sat_Olck',
+    );
   }
 }

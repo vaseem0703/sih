@@ -206,9 +206,7 @@ class _TeachingPackageScreenState extends State<TeachingPackageScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            newStatus
-                ? '✓ Marked as Teacher Reviewed'
-                : 'Review badge removed',
+            newStatus ? '✓ Marked as Teacher Reviewed' : 'Review badge removed',
           ),
           backgroundColor: newStatus ? AppColors.greenOk : AppColors.navy,
           duration: const Duration(seconds: 1),
@@ -412,9 +410,8 @@ class _TeachingPackageScreenState extends State<TeachingPackageScreen> {
                         onTap: () {
                           Navigator.of(context).push(
                             MaterialPageRoute(
-                              builder: (context) => LessonWorksheetScreen(
-                                lesson: lesson,
-                              ),
+                              builder: (context) =>
+                                  LessonWorksheetScreen(lesson: lesson),
                             ),
                           );
                         },
@@ -473,10 +470,7 @@ class _TeachingPackageScreenState extends State<TeachingPackageScreen> {
           Row(
             children: [
               Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 8,
-                  vertical: 3,
-                ),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
                   color: AppColors.navy,
                   borderRadius: BorderRadius.circular(8),
@@ -600,11 +594,8 @@ class _TeachingPackageScreenState extends State<TeachingPackageScreen> {
                     size: 18,
                   ),
                   tooltip: 'Play Santali Voice',
-                  onPressed: () => _playAudio(
-                    step.audioAsset,
-                    step.dialogueSat,
-                    index,
-                  ),
+                  onPressed: () =>
+                      _playAudio(step.audioAsset, step.dialogueSat, index),
                 ),
               ],
             ),

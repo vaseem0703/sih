@@ -16,12 +16,12 @@ class ClassroomRoom {
   });
 
   Map<String, dynamic> toJson() => {
-        'roomCode': roomCode,
-        'hostIp': hostIp,
-        'port': port,
-        'teacherName': teacherName,
-        'createdAt': createdAt.toIso8601String(),
-      };
+    'roomCode': roomCode,
+    'hostIp': hostIp,
+    'port': port,
+    'teacherName': teacherName,
+    'createdAt': createdAt.toIso8601String(),
+  };
 }
 
 class ClassroomBroadcast {
@@ -46,15 +46,15 @@ class ClassroomBroadcast {
   });
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'senderName': senderName,
-        'senderRole': senderRole.name,
-        'originalText': originalText,
-        'sourceLangCode': sourceLangCode,
-        'translations': translations,
-        'transliterations': transliterations,
-        'timestamp': timestamp.toIso8601String(),
-      };
+    'id': id,
+    'senderName': senderName,
+    'senderRole': senderRole.name,
+    'originalText': originalText,
+    'sourceLangCode': sourceLangCode,
+    'translations': translations,
+    'transliterations': transliterations,
+    'timestamp': timestamp.toIso8601String(),
+  };
 
   factory ClassroomBroadcast.fromJson(Map<String, dynamic> json) {
     return ClassroomBroadcast(
@@ -66,7 +66,9 @@ class ClassroomBroadcast {
       originalText: json['originalText'] ?? '',
       sourceLangCode: json['sourceLangCode'] ?? 'hin_Deva',
       translations: Map<String, String>.from(json['translations'] ?? {}),
-      transliterations: Map<String, String>.from(json['transliterations'] ?? {}),
+      transliterations: Map<String, String>.from(
+        json['transliterations'] ?? {},
+      ),
       timestamp: json['timestamp'] != null
           ? DateTime.parse(json['timestamp'])
           : DateTime.now(),
@@ -90,10 +92,10 @@ class StudentQuery {
   });
 
   Map<String, dynamic> toJson() => {
-        'studentName': studentName,
-        'studentLang': studentLang,
-        'originalQuery': originalQuery,
-        'translatedHindi': translatedHindi,
-        'timestamp': timestamp.toIso8601String(),
-      };
+    'studentName': studentName,
+    'studentLang': studentLang,
+    'originalQuery': originalQuery,
+    'translatedHindi': translatedHindi,
+    'timestamp': timestamp.toIso8601String(),
+  };
 }

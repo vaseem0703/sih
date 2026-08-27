@@ -46,7 +46,8 @@ class _GeneratedLessonScreenState extends State<GeneratedLessonScreen> {
   @override
   Widget build(BuildContext context) {
     final lesson = widget.lesson;
-    final isTemplateSupported = !lesson.competencyId.contains('GENERIC') &&
+    final isTemplateSupported =
+        !lesson.competencyId.contains('GENERIC') &&
         lesson.activities.isNotEmpty;
 
     return Scaffold(
@@ -257,10 +258,7 @@ class _GeneratedLessonScreenState extends State<GeneratedLessonScreen> {
                 const SizedBox(height: 24),
 
                 // 4. 🎲 CLASSROOM ACTIVITIES
-                _buildSectionHeader(
-                  emoji: '🎲',
-                  title: 'Classroom Activities',
-                ),
+                _buildSectionHeader(emoji: '🎲', title: 'Classroom Activities'),
                 const SizedBox(height: 10),
                 ...lesson.activities.map((act) => _buildActivityCard(act)),
 
@@ -358,15 +356,16 @@ class _GeneratedLessonScreenState extends State<GeneratedLessonScreen> {
 
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (context) => FlashcardScreen(
-          lesson: widget.lesson,
-          ttsService: _ttsService,
-        ),
+        builder: (context) =>
+            FlashcardScreen(lesson: widget.lesson, ttsService: _ttsService),
       ),
     );
   }
 
-  void _showUnsupportedMaterialDialog(BuildContext context, String materialType) {
+  void _showUnsupportedMaterialDialog(
+    BuildContext context,
+    String materialType,
+  ) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -375,7 +374,10 @@ class _GeneratedLessonScreenState extends State<GeneratedLessonScreen> {
           children: [
             const Icon(Icons.info_outline, color: Color(0xFFD97706)),
             const SizedBox(width: 8),
-            Text('$materialType Not Available Yet', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+            Text(
+              '$materialType Not Available Yet',
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            ),
           ],
         ),
         content: Text(
@@ -387,7 +389,9 @@ class _GeneratedLessonScreenState extends State<GeneratedLessonScreen> {
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.navy,
               foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
             ),
             onPressed: () => Navigator.of(context).pop(),
             child: const Text('Return to Lesson'),
@@ -461,7 +465,10 @@ class _GeneratedLessonScreenState extends State<GeneratedLessonScreen> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: color,
                 foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
+                padding: const EdgeInsets.symmetric(
+                  vertical: 10,
+                  horizontal: 8,
+                ),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8),
                 ),
@@ -522,7 +529,10 @@ class _GeneratedLessonScreenState extends State<GeneratedLessonScreen> {
             children: [
               Expanded(
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: AppColors.navy,
                     borderRadius: BorderRadius.circular(6),
@@ -649,7 +659,10 @@ class _GeneratedLessonScreenState extends State<GeneratedLessonScreen> {
           const SizedBox(height: 4),
           Text(
             '📦 Materials: ${act.materialsNeeded}',
-            style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+            style: const TextStyle(
+              fontSize: 12,
+              color: AppColors.textSecondary,
+            ),
           ),
           const SizedBox(height: 8),
           Text(
@@ -659,7 +672,10 @@ class _GeneratedLessonScreenState extends State<GeneratedLessonScreen> {
           const SizedBox(height: 4),
           Text(
             '👦 Students: ${act.studentInstruction}',
-            style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+            style: const TextStyle(
+              fontSize: 12,
+              color: AppColors.textSecondary,
+            ),
           ),
         ],
       ),

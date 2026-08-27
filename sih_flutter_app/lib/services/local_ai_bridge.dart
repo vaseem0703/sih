@@ -45,13 +45,18 @@ class LocalAiBridge {
     try {
       final uri = Uri.parse('$baseUrl/asr');
       final request = http.MultipartRequest('POST', uri);
-      request.files.add(await http.MultipartFile.fromPath('audio', audioFile.path));
+      request.files.add(
+        await http.MultipartFile.fromPath('audio', audioFile.path),
+      );
 
-      final streamedResponse = await request.send().timeout(const Duration(seconds: 15));
+      final streamedResponse = await request.send().timeout(
+        const Duration(seconds: 15),
+      );
       final response = await http.Response.fromStream(streamedResponse);
 
       if (response.statusCode == 200) {
-        return jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
+        return jsonDecode(utf8.decode(response.bodyBytes))
+            as Map<String, dynamic>;
       }
     } catch (_) {
       _workingUrl = null;
@@ -77,7 +82,8 @@ class LocalAiBridge {
           .timeout(const Duration(seconds: 12));
 
       if (response.statusCode == 200) {
-        return jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
+        return jsonDecode(utf8.decode(response.bodyBytes))
+            as Map<String, dynamic>;
       }
     } catch (_) {
       _workingUrl = null;
@@ -102,7 +108,8 @@ class LocalAiBridge {
           .timeout(const Duration(seconds: 35));
 
       if (response.statusCode == 200) {
-        return jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
+        return jsonDecode(utf8.decode(response.bodyBytes))
+            as Map<String, dynamic>;
       }
     } catch (_) {}
     return null;

@@ -6,7 +6,8 @@ import '../models/classroom_session.dart';
 import 'translation_service.dart';
 
 class OfflineClassroomService {
-  static final OfflineClassroomService _instance = OfflineClassroomService._internal();
+  static final OfflineClassroomService _instance =
+      OfflineClassroomService._internal();
   factory OfflineClassroomService() => _instance;
   OfflineClassroomService._internal();
 
@@ -240,8 +241,9 @@ class OfflineClassroomService {
     for (final host in candidateHosts) {
       try {
         final uri = Uri.parse('ws://$host:8888');
-        _clientSocket = await WebSocket.connect(uri.toString())
-            .timeout(const Duration(seconds: 3));
+        _clientSocket = await WebSocket.connect(
+          uri.toString(),
+        ).timeout(const Duration(seconds: 3));
 
         _clientSocket!.listen(
           (message) {
@@ -252,12 +254,14 @@ class OfflineClassroomService {
         );
 
         // Send JOIN registration
-        _clientSocket!.add(jsonEncode({
-          'type': 'JOIN',
-          'roomCode': roomCode,
-          'name': studentName,
-          'lang': preferredLanguage,
-        }));
+        _clientSocket!.add(
+          jsonEncode({
+            'type': 'JOIN',
+            'roomCode': roomCode,
+            'name': studentName,
+            'lang': preferredLanguage,
+          }),
+        );
 
         _statusStream.add('Joined Class (Room: $roomCode)');
         return true;
@@ -286,12 +290,14 @@ class OfflineClassroomService {
   // Student raises hand
   void studentRaiseHand({required String studentName, required String lang}) {
     if (_clientSocket != null) {
-      _clientSocket!.add(jsonEncode({
-        'type': 'RAISE_HAND',
-        'name': studentName,
-        'lang': lang,
-        'timestamp': DateTime.now().toIso8601String(),
-      }));
+      _clientSocket!.add(
+        jsonEncode({
+          'type': 'RAISE_HAND',
+          'name': studentName,
+          'lang': lang,
+          'timestamp': DateTime.now().toIso8601String(),
+        }),
+      );
     }
   }
 
@@ -302,12 +308,14 @@ class OfflineClassroomService {
     required String lang,
   }) {
     if (_clientSocket != null) {
-      _clientSocket!.add(jsonEncode({
-        'type': 'STUDENT_QUERY',
-        'text': queryText,
-        'name': studentName,
-        'lang': lang,
-      }));
+      _clientSocket!.add(
+        jsonEncode({
+          'type': 'STUDENT_QUERY',
+          'text': queryText,
+          'name': studentName,
+          'lang': lang,
+        }),
+      );
     }
   }
 

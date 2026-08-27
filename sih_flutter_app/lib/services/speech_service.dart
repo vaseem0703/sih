@@ -48,20 +48,24 @@ class SpeechService {
         debugLogging: true, // Enable debug logging on all builds
         onError: (errorNotification) {
           final rawMsg = errorNotification.errorMsg.toLowerCase();
-          debugPrint('[SpeechService] STT raw notice: $rawMsg (permanent=${errorNotification.permanent})');
-          
+          debugPrint(
+            '[SpeechService] STT raw notice: $rawMsg (permanent=${errorNotification.permanent})',
+          );
+
           // Any offline / language / network / no_match notice from Google STT
-          if (rawMsg.contains('language') || 
-              rawMsg.contains('unavailable') || 
-              rawMsg.contains('no_match') || 
-              rawMsg.contains('network') || 
-              rawMsg.contains('timeout') || 
+          if (rawMsg.contains('language') ||
+              rawMsg.contains('unavailable') ||
+              rawMsg.contains('no_match') ||
+              rawMsg.contains('network') ||
+              rawMsg.contains('timeout') ||
               rawMsg.contains('no match')) {
-            onStatusUpdate?.call('Recording audio for offline IndicConformer ASR...');
+            onStatusUpdate?.call(
+              'Recording audio for offline IndicConformer ASR...',
+            );
           } else {
             debugPrint('[SpeechService] Suppressed STT notice: $rawMsg');
           }
-          
+
           if (errorNotification.permanent) {
             _sttInitialized = false;
           }
@@ -96,9 +100,13 @@ class SpeechService {
 
     try {
       final locales = await _speech.locales();
-      debugPrint('[SpeechService] Discovered device locales count: ${locales.length}');
+      debugPrint(
+        '[SpeechService] Discovered device locales count: ${locales.length}',
+      );
       for (final l in locales) {
-        debugPrint('[SpeechService] Locale: id="${l.localeId}", name="${l.name}"');
+        debugPrint(
+          '[SpeechService] Locale: id="${l.localeId}", name="${l.name}"',
+        );
       }
 
       // Priority matching: hi_IN, hi-IN, hi
@@ -108,7 +116,9 @@ class SpeechService {
           orElse: () => stt.LocaleName('', ''),
         );
         if (match.localeId.isNotEmpty) {
-          debugPrint('[SpeechService] Selected exact Hindi locale: ${match.localeId}');
+          debugPrint(
+            '[SpeechService] Selected exact Hindi locale: ${match.localeId}',
+          );
           _hindiLocaleId = match.localeId;
           return _hindiLocaleId;
         }
@@ -120,7 +130,9 @@ class SpeechService {
         orElse: () => stt.LocaleName('', ''),
       );
       if (anyHindi.localeId.isNotEmpty) {
-        debugPrint('[SpeechService] Selected fuzzy Hindi locale: ${anyHindi.localeId}');
+        debugPrint(
+          '[SpeechService] Selected fuzzy Hindi locale: ${anyHindi.localeId}',
+        );
         _hindiLocaleId = anyHindi.localeId;
         return _hindiLocaleId;
       }
@@ -154,7 +166,9 @@ class SpeechService {
       final recPath = await _audioRecorder.startRecording();
       if (recPath != null) {
         _isWavRecording = true;
-        debugPrint('[SpeechService] Parallel WAV recording started for IndicConformer ASR: $recPath');
+        debugPrint(
+          '[SpeechService] Parallel WAV recording started for IndicConformer ASR: $recPath',
+        );
       }
     } catch (e) {
       debugPrint('[SpeechService] WAV Recording start exception: $e');
@@ -170,7 +184,9 @@ class SpeechService {
         await _speech.listen(
           onResult: (result) {
             final words = result.recognizedWords.trim();
-            debugPrint('[SpeechService] Live streaming STT -> "$words" (final=${result.finalResult})');
+            debugPrint(
+              '[SpeechService] Live streaming STT -> "$words" (final=${result.finalResult})',
+            );
             if (words.isNotEmpty) {
               onResult(words);
             }
@@ -199,46 +215,43 @@ class SpeechService {
     String? currentRecognizedText,
     Function(String status)? onStatusUpdate,
   }) async {
-    // 1. Stop STT if running
-    try {
-      if (_speech.isListening) await _speech.stop();
-    } catch (_) {}
-
-    // 2. Stop WAV recorder
     File? audioFile;
     if (_isWavRecording) {
       _isWavRecording = false;
       audioFile = await _audioRecorder.stopRecording();
-      debugPrint('[SpeechService] WAV recorder stopped. File: ${audioFile?.path}');
+      final len = (audioFile != null && await audioFile.exists())
+          ? await audioFile.length()
+          : 0;
+      debugPrint(
+        '[SpeechService] WAV recorder stopped. File: ${audioFile?.path} (size: $len bytes)',
+      );
     }
 
-    // 3. Return live recognized STT text if available
-    final liveText = (currentRecognizedText ?? '').trim();
-    if (liveText.isNotEmpty) {
-      debugPrint('[SpeechService] Returning live STT text: "$liveText"');
-      return liveText;
-    }
-
-    // 4. Send recorded WAV voice audio to IndicConformer ASR AI Model if live text was empty
-    if (audioFile != null && await audioFile.exists() && await audioFile.length() > 0) {
+    if (audioFile != null &&
+        await audioFile.exists() &&
+        await audioFile.length() > 0) {
       onStatusUpdate?.call('Transcribing audio with IndicConformer ASR...');
       try {
-        final asrResult = await LocalAiBridge.transcribeAudio(audioFile)
-            .timeout(const Duration(seconds: 15));
+        final asrResult = await LocalAiBridge.transcribeAudio(
+          audioFile,
+        ).timeout(const Duration(seconds: 20));
         if (asrResult != null && asrResult.containsKey('text')) {
           final text = asrResult['text'].toString().trim();
           if (text.isNotEmpty) {
-            debugPrint('[SpeechService] IndicConformer ASR transcribed: "$text"');
+            debugPrint(
+              '[SpeechService] IndicConformer ASR transcribed: "$text"',
+            );
             return text;
           }
         }
       } catch (e) {
         debugPrint('[SpeechService] IndicConformer ASR error: $e');
       }
-      // Guaranteed fallback for classroom test phrases if server offline
-      return 'किताब खोलो';
+      onStatusUpdate?.call('Local ASR unavailable');
+      return null;
     }
 
+    onStatusUpdate?.call('Local ASR unavailable');
     return null;
   }
 

@@ -4,7 +4,8 @@ import 'package:path_provider/path_provider.dart';
 import 'package:record/record.dart';
 
 class AudioRecorderService {
-  static final AudioRecorderService _instance = AudioRecorderService._internal();
+  static final AudioRecorderService _instance =
+      AudioRecorderService._internal();
   factory AudioRecorderService() => _instance;
   AudioRecorderService._internal();
 
@@ -29,7 +30,8 @@ class AudioRecorderService {
       if (!hasPerm) return null;
 
       final tempDir = await getTemporaryDirectory();
-      String filePath = '${tempDir.path}/live_teacher_input_${DateTime.now().millisecondsSinceEpoch}.wav';
+      String filePath =
+          '${tempDir.path}/live_teacher_input_${DateTime.now().millisecondsSinceEpoch}.wav';
 
       try {
         await _audioRecorder.start(
@@ -42,7 +44,8 @@ class AudioRecorderService {
         );
       } catch (e) {
         debugPrint('[AudioRecorderService] WAV encoder fallback to AAC: $e');
-        filePath = '${tempDir.path}/live_teacher_input_${DateTime.now().millisecondsSinceEpoch}.m4a';
+        filePath =
+            '${tempDir.path}/live_teacher_input_${DateTime.now().millisecondsSinceEpoch}.m4a';
         await _audioRecorder.start(
           const RecordConfig(
             encoder: AudioEncoder.aacLc,
@@ -72,7 +75,9 @@ class AudioRecorderService {
         final file = File(path);
         if (await file.exists() && await file.length() > 0) {
           // ignore: avoid_print
-          print('Recorded valid audio file: $path (${await file.length()} bytes)');
+          print(
+            'Recorded valid audio file: $path (${await file.length()} bytes)',
+          );
           return file;
         }
       }

@@ -10,7 +10,8 @@ class TtsService {
       await _audioPlayer.stop();
       await _audioPlayer.setVolume(1.0);
 
-      if (audioPathOrUrl.startsWith('http://') || audioPathOrUrl.startsWith('https://')) {
+      if (audioPathOrUrl.startsWith('http://') ||
+          audioPathOrUrl.startsWith('https://')) {
         await _audioPlayer.play(UrlSource(audioPathOrUrl));
       } else if (audioPathOrUrl.startsWith('assets/')) {
         final cleanPath = audioPathOrUrl.replaceFirst('assets/', '');
@@ -21,7 +22,9 @@ class TtsService {
     } catch (e) {
       debugPrint('[TtsService] Audio play error ($audioPathOrUrl): $e');
       try {
-        await _audioPlayer.play(AssetSource('audio/santali_educational_sido.wav'));
+        await _audioPlayer.play(
+          AssetSource('audio/santali_educational_sido.wav'),
+        );
       } catch (_) {}
     }
   }
@@ -60,14 +63,14 @@ class TtsService {
 
     // Available offline 24kHz studio audio assets (verified existing in assets/audio/)
     const availableAssets = [
-      'assets/audio/santali_numbers_phulmani.wav',    // 1. Numbers & Counting
-      'assets/audio/santali_educational_sido.wav',    // 2. Book Reading & Recognition
-      'assets/audio/santali_short_phulmani.wav',      // 3. Short Greetings & Praise
-      'assets/audio/santali_longer_sido.wav',         // 4. Group Classroom Instructions
-      'assets/audio/live_karma_phulmani.wav',         // 5. Classroom Actions & Routines
-      'assets/audio/live_karma_sido_loud.wav',        // 6. Crisp Loud Sido Voice
-      'assets/audio/live_karma_sido_extra_loud.wav',  // 7. Extra Loud Classroom Voice
-      'assets/audio/santali_real_voice.wav',          // 8. General Pedagogy Voice
+      'assets/audio/santali_numbers_phulmani.wav', // 1. Numbers & Counting
+      'assets/audio/santali_educational_sido.wav', // 2. Book Reading & Recognition
+      'assets/audio/santali_short_phulmani.wav', // 3. Short Greetings & Praise
+      'assets/audio/santali_longer_sido.wav', // 4. Group Classroom Instructions
+      'assets/audio/live_karma_phulmani.wav', // 5. Classroom Actions & Routines
+      'assets/audio/live_karma_sido_loud.wav', // 6. Crisp Loud Sido Voice
+      'assets/audio/live_karma_sido_extra_loud.wav', // 7. Extra Loud Classroom Voice
+      'assets/audio/santali_real_voice.wav', // 8. General Pedagogy Voice
     ];
 
     if (text.contains('᱑') ||
@@ -127,11 +130,14 @@ class TtsService {
     } else {
       // Category 6: Dynamic deterministic hash selection based on input text content
       // Ensures DIFFERENT input texts always produce DIFFERENT audio assets!
-      final hashIndex = (text.hashCode.abs() + text.length) % availableAssets.length;
+      final hashIndex =
+          (text.hashCode.abs() + text.length) % availableAssets.length;
       assetToPlay = availableAssets[hashIndex];
     }
 
-    debugPrint('[TtsService] Selected offline audio asset for "$text" -> $assetToPlay');
+    debugPrint(
+      '[TtsService] Selected offline audio asset for "$text" -> $assetToPlay',
+    );
     await playAudio(assetToPlay);
     onStatusUpdate?.call("Audible Santali Voice Playing");
     return assetToPlay;

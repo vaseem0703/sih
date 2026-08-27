@@ -43,7 +43,10 @@ class _LessonWorksheetScreenState extends State<LessonWorksheetScreen> {
           children: [
             Icon(Icons.print, color: AppColors.navy),
             SizedBox(width: 8),
-            Text('Print / Share Preview', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+            Text(
+              'Print / Share Preview',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            ),
           ],
         ),
         content: Text(
@@ -63,7 +66,9 @@ class _LessonWorksheetScreenState extends State<LessonWorksheetScreen> {
             onPressed: () {
               Navigator.of(context).pop();
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Print job sent to local printer.')),
+                const SnackBar(
+                  content: Text('Print job sent to local printer.'),
+                ),
               );
             },
             child: const Text('Print Now'),
@@ -235,26 +240,41 @@ class _LessonWorksheetScreenState extends State<LessonWorksheetScreen> {
                         ),
                       ),
                       const SizedBox(height: 10),
-                      ...lesson.keyVocabulary.take(4).map(
-                        (v) => Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 4.0),
-                          child: Row(
-                            children: [
-                              Text(v.emoji ?? '▪', style: const TextStyle(fontSize: 16)),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: Text(
-                                  '${v.termHi} (${v.termSat})',
-                                  style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
-                                  overflow: TextOverflow.ellipsis,
-                                ),
+                      ...lesson.keyVocabulary
+                          .take(4)
+                          .map(
+                            (v) => Padding(
+                              padding: const EdgeInsets.symmetric(
+                                vertical: 4.0,
                               ),
-                              const SizedBox(width: 8),
-                              const Text('____________', style: TextStyle(color: AppColors.textMuted)),
-                            ],
+                              child: Row(
+                                children: [
+                                  Text(
+                                    v.emoji ?? '▪',
+                                    style: const TextStyle(fontSize: 16),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Text(
+                                      '${v.termHi} (${v.termSat})',
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.w600,
+                                        fontSize: 13,
+                                      ),
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  const Text(
+                                    '____________',
+                                    style: TextStyle(
+                                      color: AppColors.textMuted,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
                           ),
-                        ),
-                      ),
 
                       const SizedBox(height: 24),
                       const Divider(color: AppColors.line),
@@ -286,23 +306,43 @@ class _LessonWorksheetScreenState extends State<LessonWorksheetScreen> {
                             children: [
                               Text(
                                 '${i + 1}. ${q.questionHi}',
-                                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 13,
+                                ),
                               ),
                               Text(
                                 '   ${q.questionSat}',
-                                style: const TextStyle(fontSize: 12, color: AppColors.purple, fontWeight: FontWeight.w600),
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  color: AppColors.purple,
+                                  fontWeight: FontWeight.w600,
+                                ),
                               ),
                               const SizedBox(height: 8),
                               Wrap(
                                 spacing: 12,
-                                children: q.optionsHi.map((opt) => Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    const Icon(Icons.radio_button_unchecked, size: 14, color: AppColors.textMuted),
-                                    const SizedBox(width: 4),
-                                    Text(opt, style: const TextStyle(fontSize: 12)),
-                                  ],
-                                )).toList(),
+                                children: q.optionsHi
+                                    .map(
+                                      (opt) => Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          const Icon(
+                                            Icons.radio_button_unchecked,
+                                            size: 14,
+                                            color: AppColors.textMuted,
+                                          ),
+                                          const SizedBox(width: 4),
+                                          Text(
+                                            opt,
+                                            style: const TextStyle(
+                                              fontSize: 12,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    )
+                                    .toList(),
                               ),
                             ],
                           ),
@@ -322,7 +362,9 @@ class _LessonWorksheetScreenState extends State<LessonWorksheetScreen> {
                         style: OutlinedButton.styleFrom(
                           padding: const EdgeInsets.symmetric(vertical: 14),
                           side: const BorderSide(color: AppColors.navy),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
                         ),
                         onPressed: _saveWorksheet,
                         icon: const Icon(Icons.save_alt, size: 18),
@@ -336,7 +378,9 @@ class _LessonWorksheetScreenState extends State<LessonWorksheetScreen> {
                           backgroundColor: AppColors.navy,
                           foregroundColor: Colors.white,
                           padding: const EdgeInsets.symmetric(vertical: 14),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
                         ),
                         onPressed: _showPrintPreview,
                         icon: const Icon(Icons.print, size: 18),
