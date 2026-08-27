@@ -50,13 +50,16 @@ class SpeechService {
           final rawMsg = errorNotification.errorMsg.toLowerCase();
           debugPrint('[SpeechService] STT raw notice: $rawMsg (permanent=${errorNotification.permanent})');
           
-          if (rawMsg.contains('no_match') || rawMsg.contains('network') || rawMsg.contains('timeout') || rawMsg.contains('no match')) {
-            // Google STT offline/no-match — smoothly handled by IndicConformer ASR WAV recorder
+          // Any offline / language / network / no_match notice from Google STT
+          if (rawMsg.contains('language') || 
+              rawMsg.contains('unavailable') || 
+              rawMsg.contains('no_match') || 
+              rawMsg.contains('network') || 
+              rawMsg.contains('timeout') || 
+              rawMsg.contains('no match')) {
             onStatusUpdate?.call('Recording audio for offline IndicConformer ASR...');
           } else {
-            final msg = 'STT Notice: ${errorNotification.errorMsg}';
-            _globalStatusCallback?.call(msg);
-            onStatusUpdate?.call(msg);
+            debugPrint('[SpeechService] Suppressed STT notice: $rawMsg');
           }
           
           if (errorNotification.permanent) {
