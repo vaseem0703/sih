@@ -4,6 +4,7 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
 import 'audio_recorder_service.dart';
 import 'local_ai_bridge.dart';
+import 'on_device_asr_service.dart';
 
 class SpeechService {
   final AudioRecorderService _audioRecorder = AudioRecorderService();
@@ -198,7 +199,31 @@ class SpeechService {
         await audioFile.exists() &&
         await audioFile.length() > 0) {
       onStatusUpdate?.call('Transcribing audio with IndicConformer ASR...');
+
+      // 1. Try On-Device Sherpa-ONNX Hindi ASR first (100% Offline, No PC / No Internet required)
+      final onDeviceService = OnDeviceAsrService();
+      if (onDeviceService.isReady) {
+        try {
+          debugPrint('[SpeechService] Using On-Device Sherpa-ONNX ASR...');
+          final onDeviceText = await onDeviceService.transcribeWavFile(
+            audioFile,
+          );
+          if (onDeviceText != null && onDeviceText.isNotEmpty) {
+            debugPrint(
+              '[ASR DEBUG] ON-DEVICE SHERPA ASR RESULT = "$onDeviceText"',
+            );
+            return onDeviceText;
+          }
+        } catch (e, stackTrace) {
+          debugPrint(
+            '[SpeechService] On-Device Sherpa ASR error: $e\n$stackTrace',
+          );
+        }
+      }
+
+      // 2. Fallback to PC Local AI Server if On-Device ASR is not ready
       try {
+        debugPrint('[SpeechService] Falling back to PC Local AI Server ASR...');
         final asrResult = await LocalAiBridge.transcribeAudio(
           audioFile,
         ).timeout(const Duration(seconds: 60));

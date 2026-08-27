@@ -4,6 +4,7 @@ import '../models/translation_result.dart';
 import '../services/speech_service.dart';
 import '../services/translation_service.dart';
 import '../services/tts_service.dart';
+import '../services/on_device_asr_service.dart';
 
 class LiveClassScreen extends StatefulWidget {
   final SpeechService speechService;
@@ -53,11 +54,27 @@ class _LiveClassScreenState extends State<LiveClassScreen>
     'पानी पियो',
   ];
 
+  final OnDeviceAsrService _onDeviceAsrService = OnDeviceAsrService();
+
   @override
   void initState() {
     super.initState();
-    // Warm up STT eagerly: permission + locale discovery
     widget.speechService.warmUp();
+    _checkOnDeviceModel();
+  }
+
+  void _checkOnDeviceModel() async {
+    await _onDeviceAsrService.checkModelStatus();
+    if (mounted) setState(() {});
+  }
+
+  void _downloadOnDeviceModel() async {
+    await _onDeviceAsrService.downloadModel(
+      onProgress: (progress, status) {
+        if (mounted) setState(() {});
+      },
+    );
+    if (mounted) setState(() {});
   }
 
   @override
@@ -211,12 +228,100 @@ class _LiveClassScreenState extends State<LiveClassScreen>
     )['name']!;
   }
 
+  Widget _buildOnDeviceModelBanner() {
+    final status = _onDeviceAsrService.status;
+    if (status == OnDeviceAsrStatus.ready) {
+      return Container(
+        color: Colors.green.shade50,
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+        child: Row(
+          children: const [
+            Icon(Icons.offline_pin, color: Colors.green, size: 18),
+            SizedBox(width: 8),
+            Text(
+              'Hindi Offline ASR Ready (100% On-Device)',
+              style: TextStyle(
+                color: Colors.green,
+                fontWeight: FontWeight.bold,
+                fontSize: 12,
+              ),
+            ),
+          ],
+        ),
+      );
+    } else if (status == OnDeviceAsrStatus.downloading) {
+      return Container(
+        color: Colors.amber.shade50,
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        child: Row(
+          children: [
+            const SizedBox(
+              width: 16,
+              height: 16,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                _onDeviceAsrService.statusMessage,
+                style: const TextStyle(
+                  color: Colors.orange,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 12,
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    } else {
+      return Container(
+        color: Colors.orange.shade50,
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+        child: Row(
+          children: [
+            const Icon(
+              Icons.download_for_offline,
+              color: Colors.orange,
+              size: 18,
+            ),
+            const SizedBox(width: 8),
+            const Expanded(
+              child: Text(
+                'Hindi offline speech model not installed.',
+                style: TextStyle(color: Colors.deepOrange, fontSize: 12),
+              ),
+            ),
+            ElevatedButton(
+              onPressed: _downloadOnDeviceModel,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.orange,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
+                minimumSize: Size.zero,
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+              child: const Text(
+                'Download Model (150MB)',
+                style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
       body: Column(
         children: [
+          _buildOnDeviceModelBanner(),
           // Top Language Selector & Auto-Speaker Bar
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
