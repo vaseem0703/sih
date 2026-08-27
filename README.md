@@ -1,4 +1,4 @@
-# SIH 26042 — Vani Setu: Vernacular Classroom AI & Translation Assistant
+# SIH 26042 — Bhasha Setu: Vernacular Classroom AI & Translation Assistant
 
 AI-powered, offline-first Mother-Tongue pedagogy and real-time translation assistant for primary schools (Hindi ↔ Santali Ol Chiki, Ho, and Mundari).
 

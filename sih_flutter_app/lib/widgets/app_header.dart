@@ -45,11 +45,11 @@ class AppHeader extends StatelessWidget {
                   ),
                   alignment: Alignment.center,
                   child: const Text(
-                    'S',
+                    'BS',
                     style: TextStyle(
                       color: Colors.white,
                       fontWeight: FontWeight.w900,
-                      fontSize: 17,
+                      fontSize: 14,
                     ),
                   ),
                 ),
@@ -60,7 +60,7 @@ class AppHeader extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: const [
                       Text(
-                        'SIH',
+                        'Bhasha Setu',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
