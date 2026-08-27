@@ -28,23 +28,35 @@ class AudioRecorderService {
       if (!hasPerm) return null;
 
       final tempDir = await getTemporaryDirectory();
-      final filePath = '${tempDir.path}/live_teacher_input_${DateTime.now().millisecondsSinceEpoch}.wav';
+      String filePath = '${tempDir.path}/live_teacher_input_${DateTime.now().millisecondsSinceEpoch}.wav';
 
-      await _audioRecorder.start(
-        const RecordConfig(
-          encoder: AudioEncoder.wav,
-          sampleRate: 16000,
-          numChannels: 1,
-        ),
-        path: filePath,
-      );
+      try {
+        await _audioRecorder.start(
+          const RecordConfig(
+            encoder: AudioEncoder.wav,
+            sampleRate: 16000,
+            numChannels: 1,
+          ),
+          path: filePath,
+        );
+      } catch (e) {
+        debugPrint('[AudioRecorderService] WAV encoder fallback to AAC: $e');
+        filePath = '${tempDir.path}/live_teacher_input_${DateTime.now().millisecondsSinceEpoch}.m4a';
+        await _audioRecorder.start(
+          const RecordConfig(
+            encoder: AudioEncoder.aacLc,
+            sampleRate: 16000,
+            numChannels: 1,
+          ),
+          path: filePath,
+        );
+      }
 
       _isRecording = true;
       _currentRecordingPath = filePath;
       return filePath;
     } catch (e) {
-      // ignore: avoid_print
-      print('AudioRecorder start error: $e');
+      debugPrint('[AudioRecorderService] AudioRecorder start error: $e');
       _isRecording = false;
       return null;
     }

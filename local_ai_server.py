@@ -178,11 +178,21 @@ def transcribe_hindi_audio(audio_path):
     load_asr_model()
     if asr_model is not None:
         try:
+            target_path = audio_path
+            try:
+                import librosa
+                y, sr = librosa.load(audio_path, sr=16000, mono=True)
+                clean_path = audio_path.replace('.wav', '_clean.wav').replace('.m4a', '_clean.wav')
+                sf.write(clean_path, y, 16000, subtype='PCM_16')
+                target_path = clean_path
+            except Exception as clean_err:
+                print(f"[AI Server] Audio clean notice: {clean_err}")
+
             with torch.inference_mode():
                 try:
-                    transcriptions = asr_model.transcribe(audio=[audio_path], batch_size=1, num_workers=0)
+                    transcriptions = asr_model.transcribe(audio=[target_path], batch_size=1, num_workers=0)
                 except TypeError:
-                    transcriptions = asr_model.transcribe([audio_path])
+                    transcriptions = asr_model.transcribe([target_path])
                 
                 if isinstance(transcriptions, tuple):
                     transcriptions = transcriptions[0]
@@ -333,14 +343,16 @@ class LocalAIHandler(BaseHTTPRequestHandler):
             saved_audio_path = os.path.join(OUTPUT_AUDIO_DIR, f"mic_input_{int(time.time()*1000)}.wav")
 
             if 'multipart/form-data' in content_type:
-                boundary = content_type.split("boundary=")[-1].encode()
                 body = self.rfile.read(content_length)
-                parts = body.split(boundary)
+                boundary_marker = content_type.split("boundary=")[-1].strip('"').encode()
+                parts = body.split(b'--' + boundary_marker)
                 for part in parts:
-                    if b'filename=' in part:
+                    if b'filename=' in part or b'name="audio"' in part:
                         header_end = part.find(b'\r\n\r\n')
                         if header_end != -1:
-                            audio_bytes = part[header_end + 4:-2]
+                            audio_bytes = part[header_end + 4:]
+                            if audio_bytes.endswith(b'\r\n'):
+                                audio_bytes = audio_bytes[:-2]
                             with open(saved_audio_path, 'wb') as f:
                                 f.write(audio_bytes)
                             break
@@ -363,7 +375,7 @@ class LocalAIHandler(BaseHTTPRequestHandler):
                 print(f"[ASR Server] Transcribed Hindi Text: '{transcript}' ({latency:.2f}s)")
                 
                 self._send_json(200, {
-                    "text": transcript,
+                    "text": transcript or "",
                     "latency": round(latency, 2),
                     "source": "REAL_LOCAL_AI (IndicConformer ASR)"
                 })
