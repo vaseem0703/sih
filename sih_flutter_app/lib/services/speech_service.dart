@@ -130,7 +130,7 @@ class SpeechService {
   }
 
   // ─────────────────────────────────────────────────────
-  // Start Listening — Live STT gets exclusive mic access
+  // Start Listening — Direct WAV Recording for IndicConformer ASR AI Model
   // ─────────────────────────────────────────────────────
   Future<bool> startListening({
     required Function(String text) onResult,
@@ -146,82 +146,30 @@ class SpeechService {
       return false;
     }
 
-    // 2. Initialize STT
-    final sttOk = await _initSTT(onStatusUpdate: onStatusUpdate);
-    debugPrint('[SpeechService] STT available: $sttOk');
-
-    if (sttOk) {
-      final locale = localeId ?? await _findHindiLocale();
-      debugPrint('[SpeechService] Calling listen() with locale=$locale');
-
-      onStatusUpdate?.call('Listening — speak Hindi...');
-
-      try {
-        await _speech.listen(
-          onResult: (result) {
-            final words = result.recognizedWords.trim();
-            debugPrint('[SpeechService] onResult -> "$words" (final=${result.finalResult})');
-            if (words.isNotEmpty) {
-              onResult(words);
-            }
-          },
-          listenOptions: stt.SpeechListenOptions(
-            localeId: locale,
-            listenFor: const Duration(seconds: 60),
-            pauseFor: const Duration(seconds: 10),
-            cancelOnError: false,
-            partialResults: true,
-          ),
-          onSoundLevelChange: (level) {
-            // Keep active
-          },
-        );
-        debugPrint('[SpeechService] listen() initiated successfully.');
-
-        // Also start WAV recorder in parallel for IndicConformer backup ASR
-        try {
-          await _audioRecorder.startRecording();
-          _isWavRecording = true;
-        } catch (_) {}
-
-        return true;
-      } catch (e) {
-        debugPrint('[SpeechService] listen() threw exception: $e');
-        onStatusUpdate?.call('Listen Error: $e');
-      }
-    }
-
-    // Fallback: If STT fails to start, start WAV recorder mode for IndicConformer
-    debugPrint('[SpeechService] STT unavailable. Recording audio for IndicConformer...');
-    onStatusUpdate?.call('Recording audio for IndicConformer...');
+    // 2. Start Direct WAV Recording for IndicConformer ASR Model
+    onStatusUpdate?.call('Listening — speak Hindi...');
     try {
-      await _audioRecorder.startRecording();
-      _isWavRecording = true;
-      return true;
+      final recPath = await _audioRecorder.startRecording();
+      if (recPath != null) {
+        _isWavRecording = true;
+        debugPrint('[SpeechService] Direct WAV recording started for IndicConformer ASR: $recPath');
+        return true;
+      }
     } catch (e) {
-      onStatusUpdate?.call('WAV Recorder Error: $e');
-      return false;
+      debugPrint('[SpeechService] WAV Recording start exception: $e');
+      onStatusUpdate?.call('Recorder Exception: $e');
     }
+    return false;
   }
 
   // ─────────────────────────────────────────────────────
-  // Stop Listening & Transcribe
+  // Stop Listening & Transcribe with IndicConformer ASR AI Model
   // ─────────────────────────────────────────────────────
   Future<String?> stopListeningAndTranscribe({
     String? currentRecognizedText,
     Function(String status)? onStatusUpdate,
   }) async {
-    // 1. Stop STT if running
-    if (_speech.isListening) {
-      try {
-        await _speech.stop();
-        debugPrint('[SpeechService] STT stopped by user.');
-      } catch (e) {
-        debugPrint('[SpeechService] STT stop error: $e');
-      }
-    }
-
-    // 2. Stop WAV recorder if running
+    // 1. Stop WAV recorder
     File? audioFile;
     if (_isWavRecording) {
       _isWavRecording = false;
@@ -229,7 +177,7 @@ class SpeechService {
       debugPrint('[SpeechService] WAV recorder stopped. File: ${audioFile?.path}');
     }
 
-    // 3. Prioritize sending recorded WAV file to OUR IndicConformer ASR model on local AI server
+    // 2. Send recorded WAV voice audio to OUR IndicConformer ASR AI Model
     if (audioFile != null && await audioFile.exists() && await audioFile.length() > 0) {
       onStatusUpdate?.call('Transcribing speech with IndicConformer ASR...');
       try {
@@ -244,14 +192,8 @@ class SpeechService {
         }
       } catch (e) {
         debugPrint('[SpeechService] IndicConformer ASR error: $e');
+        onStatusUpdate?.call('IndicConformer ASR error: $e');
       }
-    }
-
-    // 4. Secondary fallback to live recognized STT words if server ASR unavailable
-    final sttText = (currentRecognizedText ?? '').trim();
-    if (sttText.isNotEmpty) {
-      debugPrint('[SpeechService] Returning live STT text: "$sttText"');
-      return sttText;
     }
 
     return null;
