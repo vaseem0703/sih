@@ -338,7 +338,7 @@ class LocalAIHandler(BaseHTTPRequestHandler):
         content_type = self.headers.get('Content-Type', '')
 
         if parsed_path == "/asr":
-            print("[ASR Request] Processing received microphone audio...")
+            print("[ASR SERVER] REQUEST RECEIVED")
             start_t = time.time()
             saved_audio_path = os.path.join(OUTPUT_AUDIO_DIR, f"mic_input_{int(time.time()*1000)}.wav")
 
@@ -369,11 +369,27 @@ class LocalAIHandler(BaseHTTPRequestHandler):
                     pass
 
             if os.path.exists(saved_audio_path) and os.path.getsize(saved_audio_path) > 0:
-                print(f"[ASR Server] Audio file saved: {saved_audio_path} ({os.path.getsize(saved_audio_path)} bytes)")
+                file_size = os.path.getsize(saved_audio_path)
+                print(f"[ASR SERVER] FILE SIZE = {file_size} bytes")
+                try:
+                    info = sf.info(saved_audio_path)
+                    print(f"[ASR SERVER] AUDIO DURATION = {info.duration:.2f} seconds")
+                    print(f"[ASR SERVER] SAMPLE RATE = {info.samplerate} Hz")
+                    print(f"[ASR SERVER] CHANNELS = {info.channels}")
+                except Exception as info_err:
+                    print(f"[ASR SERVER] Audio info notice: {info_err}")
+
+                print(f"[ASR SERVER] MODEL: IndicConformer ({INDICCONFORMER_PATH})")
+                print("[ASR SERVER] INFERENCE STARTED...")
                 transcript = transcribe_hindi_audio(saved_audio_path)
                 latency = time.time() - start_t
-                print(f"[ASR Server] Transcribed Hindi Text: '{transcript}' ({latency:.2f}s)")
-                
+                print("[ASR SERVER] INFERENCE COMPLETED")
+                print(f"[ASR SERVER] RAW MODEL RESULT = '{transcript}'")
+                print(f"[ASR SERVER] FINAL TRANSCRIPTION = '{transcript}'")
+
+                if not transcript or not transcript.strip():
+                    print("[ASR SERVER] INDICCONFORMER RETURNED EMPTY TEXT")
+
                 self._send_json(200, {
                     "text": transcript or "",
                     "latency": round(latency, 2),

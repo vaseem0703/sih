@@ -42,39 +42,39 @@ class LocalAiBridge {
   static Future<Map<String, dynamic>?> transcribeAudio(File audioFile) async {
     final baseUrl = await getWorkingBaseUrl();
     final len = await audioFile.length();
-    debugPrint('[FLUTTER ASR] ASR REQUEST START');
-    debugPrint('[FLUTTER ASR] AUDIO PATH: ${audioFile.path}');
-    debugPrint('[FLUTTER ASR] AUDIO SIZE: $len bytes');
+    debugPrint('[ASR DEBUG] SENDING AUDIO TO /asr');
+    debugPrint('[ASR DEBUG] FILE PATH = ${audioFile.path}');
+    debugPrint('[ASR DEBUG] FILE SIZE = $len bytes');
 
     if (baseUrl == null) {
-      debugPrint('[FLUTTER ASR] ERROR: Local server unreachable');
+      debugPrint('[ASR DEBUG] ERROR: Local server unreachable');
       return null;
     }
 
     try {
       final uri = Uri.parse('$baseUrl/asr');
-      debugPrint('[FLUTTER ASR] ASR URL: $uri');
+      debugPrint('[ASR DEBUG] POST URL = $uri');
       final request = http.MultipartRequest('POST', uri);
       request.files.add(
         await http.MultipartFile.fromPath('audio', audioFile.path),
       );
 
       final streamedResponse = await request.send().timeout(
-        const Duration(seconds: 25),
+        const Duration(seconds: 60),
       );
       final response = await http.Response.fromStream(streamedResponse);
       final responseText = utf8.decode(response.bodyBytes);
-      debugPrint('[FLUTTER ASR] HTTP STATUS: ${response.statusCode}');
-      debugPrint('[FLUTTER ASR] RESPONSE: $responseText');
+      debugPrint('[ASR DEBUG] HTTP STATUS = ${response.statusCode}');
+      debugPrint('[ASR DEBUG] RAW RESPONSE = $responseText');
 
       if (response.statusCode == 200) {
         final jsonMap = jsonDecode(responseText) as Map<String, dynamic>;
         final extractedText = jsonMap['text']?.toString() ?? '';
-        debugPrint('[FLUTTER ASR] EXTRACTED TEXT: "$extractedText"');
+        debugPrint('[ASR DEBUG] EXTRACTED TEXT = "$extractedText"');
         return jsonMap;
       }
     } catch (e) {
-      debugPrint('[FLUTTER ASR] HTTP Exception: $e');
+      debugPrint('[ASR DEBUG] HTTP Exception: $e');
       _workingUrl = null;
     }
     return null;

@@ -201,18 +201,16 @@ class SpeechService {
       try {
         final asrResult = await LocalAiBridge.transcribeAudio(
           audioFile,
-        ).timeout(const Duration(seconds: 20));
+        ).timeout(const Duration(seconds: 60));
         if (asrResult != null && asrResult.containsKey('text')) {
           final text = asrResult['text'].toString().trim();
+          debugPrint('[ASR DEBUG] SPEECH SERVICE RESULT = "$text"');
           if (text.isNotEmpty) {
-            debugPrint(
-              '[SpeechService] IndicConformer ASR transcribed: "$text"',
-            );
             return text;
           }
         }
       } catch (e) {
-        debugPrint('[SpeechService] IndicConformer ASR error: $e');
+        debugPrint('[ASR DEBUG] SpeechService ASR Exception: $e');
       }
       onStatusUpdate?.call('Local ASR unavailable');
       return null;
