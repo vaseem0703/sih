@@ -48,6 +48,30 @@ class TranslationService {
     },
   };
 
+  static String _devanagariToOlChiki(String text) {
+    const map = {
+      'अ': 'ᱟ', 'आ': 'ᱟ', 'ा': 'ᱟ',
+      'इ': 'ᱤ', 'ई': 'ᱤ', 'ि': 'ᱤ', 'ी': 'ᱤ',
+      'उ': 'ᱩ', 'ऊ': 'ᱩ', 'ु': 'ᱩ', 'ू': 'ᱩ',
+      'ए': 'ᱮ', 'े': 'ᱮ', 'ऐ': 'ᱮ', 'ै': 'ᱮ',
+      'ओ': 'ᱳ', 'ो': 'ᱳ', 'औ': 'ᱳ', 'ौ': 'ᱳ',
+      'क': 'ᱠ', 'ख': 'ᱠᱷ', 'ग': 'ᱜ', 'घ': 'ᱜᱷ',
+      'च': 'ᱪ', 'छ': 'ᱪᱷ', 'ज': 'ᱡ', 'झ': 'ᱡᱷ',
+      'ट': 'ᱛ', 'ठ': 'ᱛᱷ', 'ड': 'ᱫ', 'ढ': 'ᱫᱷ', 'ण': 'ᱱ',
+      'त': 'ᱛ', 'थ': 'ᱛᱷ', 'द': 'ᱫ', 'ध': 'ᱫᱷ', 'न': 'ᱱ',
+      'प': 'ᱯ', 'फ': 'ᱯᱷ', 'ब': 'ᱵ', 'भ': 'ᱵᱷ', 'म': 'ᱢ',
+      'य': 'ᱭ', 'र': 'ᱨ', 'ल': 'ᱞ', 'व': 'ᱣ',
+      'श': 'ᱥ', 'ष': 'ᱥ', 'स': 'ᱥ', 'ह': 'ᱦ',
+      'ं': 'ᱝ', 'ः': 'ᱦ', '़': 'ᱹ', '।': '᱾', '.': '᱾',
+    };
+    final buf = StringBuffer();
+    for (int i = 0; i < text.length; i++) {
+      final char = text[i];
+      buf.write(map[char] ?? char);
+    }
+    return buf.toString();
+  }
+
   Future<TranslationResult> translateBidirectional({
     required String text,
     required String srcLangCode,
@@ -94,13 +118,13 @@ class TranslationService {
 
     if (translated.isEmpty) {
       if (tgtLangCode == 'sat_Olck') {
-        translated = 'ᱱᱚᱣᱟ ᱫᱚ ᱪᱮᱪᱮᱫ ᱨᱮᱱᱟᱜ ᱠᱟᱛᱷᱟ ᱠᱟᱱᱟ ᱾';
+        translated = _devanagariToOlChiki(cleanInput);
       } else if (tgtLangCode == 'hoc_Wara') {
         translated = 'ᱱᱮ ᱫᱚ ᱤᱛᱩ ᱨᱮᱱᱟᱜ ᱠᱟᱡᱤ ᱛᱟᱱᱟ ᱾';
       } else if (tgtLangCode == 'unr_Mund') {
         translated = 'ᱱᱤ ᱫᱚ ᱥᱮᱬᱟ ᱨᱮᱱᱟᱜ ᱠᱟᱡᱤ ᱛᱟᱱᱟ ᱾';
       } else {
-        translated = 'अनुवाद तैयार है।';
+        translated = cleanInput;
       }
     }
 
