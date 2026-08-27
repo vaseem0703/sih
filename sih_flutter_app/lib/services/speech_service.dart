@@ -47,10 +47,18 @@ class SpeechService {
       final result = await _speech.initialize(
         debugLogging: true, // Enable debug logging on all builds
         onError: (errorNotification) {
-          final msg = 'STT Error: ${errorNotification.errorMsg}';
-          debugPrint('[SpeechService] $msg (permanent=${errorNotification.permanent})');
-          _globalStatusCallback?.call(msg);
-          onStatusUpdate?.call(msg);
+          final rawMsg = errorNotification.errorMsg.toLowerCase();
+          debugPrint('[SpeechService] STT raw notice: $rawMsg (permanent=${errorNotification.permanent})');
+          
+          if (rawMsg.contains('no_match') || rawMsg.contains('network') || rawMsg.contains('timeout') || rawMsg.contains('no match')) {
+            // Google STT offline/no-match — smoothly handled by IndicConformer ASR WAV recorder
+            onStatusUpdate?.call('Recording audio for offline IndicConformer ASR...');
+          } else {
+            final msg = 'STT Notice: ${errorNotification.errorMsg}';
+            _globalStatusCallback?.call(msg);
+            onStatusUpdate?.call(msg);
+          }
+          
           if (errorNotification.permanent) {
             _sttInitialized = false;
           }
