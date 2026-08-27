@@ -18,7 +18,8 @@ class TranslationService {
     debugPrint('INPUT: "$cleanInput"');
 
     // Always enforce Hindi Devanagari as source for speech ASR inputs if input contains Devanagari
-    final effectiveSrc = (srcLangCode == tgtLangCode || srcLangCode == 'sat_Olck')
+    final effectiveSrc =
+        (srcLangCode == tgtLangCode || srcLangCode == 'sat_Olck')
         ? 'hin_Deva'
         : srcLangCode;
 
@@ -53,7 +54,8 @@ class TranslationService {
     return TranslationResult(
       originalHindi: cleanInput,
       santaliOlChiki: 'Translation unavailable',
-      transliteration: 'IndicTrans2 Offline (Ensure local_ai_server.py is running)',
+      transliteration:
+          'IndicTrans2 Offline (Ensure local_ai_server.py is running)',
       latencySeconds: stopwatch.elapsedMilliseconds / 1000.0,
       isOffline: true,
       source: 'TRANSLATION_FAILURE',

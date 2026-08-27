@@ -91,7 +91,9 @@ def translate_hindi_to_santali(text):
         gen_tokens = model_trans.generate(
             **inputs,
             num_beams=4,
-            max_length=256,
+            max_length=128,
+            repetition_penalty=1.2,
+            no_repeat_ngram_size=3,
             use_cache=False,
         )
     

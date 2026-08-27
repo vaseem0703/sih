@@ -20,7 +20,7 @@ class LocalAiBridge {
       try {
         final res = await http
             .get(Uri.parse('$url/status'))
-            .timeout(const Duration(seconds: 5));
+            .timeout(const Duration(seconds: 4));
         if (res.statusCode == 200) {
           _workingUrl = url;
           debugPrint('[LocalAiBridge] Connected to local AI server: $url');
@@ -43,35 +43,40 @@ class LocalAiBridge {
     String src = 'hin_Deva',
     String tgt = 'sat_Olck',
   }) async {
-    String? baseUrl = await getWorkingBaseUrl();
-    if (baseUrl == null) {
-      baseUrl = await getWorkingBaseUrl(forceRefresh: true);
+    List<String> targetUrls = [];
+    if (_workingUrl != null) {
+      targetUrls.add(_workingUrl!);
     }
-    if (baseUrl == null) {
-      debugPrint(
-        '[LocalAiBridge] ERROR: Local AI server unreachable on all endpoints',
-      );
-      return null;
-    }
-
-    try {
-      final res = await http
-          .post(
-            Uri.parse('$baseUrl/translate'),
-            headers: {'Content-Type': 'application/json; charset=UTF-8'},
-            body: jsonEncode({'text': text, 'src': src, 'tgt': tgt}),
-          )
-          .timeout(const Duration(seconds: 30));
-
-      if (res.statusCode == 200) {
-        return jsonDecode(utf8.decode(res.bodyBytes)) as Map<String, dynamic>;
-      } else {
-        debugPrint('[LocalAiBridge] HTTP error ${res.statusCode}: ${res.body}');
+    for (final url in _possibleUrls) {
+      if (!targetUrls.contains(url)) {
+        targetUrls.add(url);
       }
-    } catch (e) {
-      debugPrint('[LocalAiBridge] Translation request exception: $e');
-      _workingUrl = null;
     }
+
+    for (final url in targetUrls) {
+      try {
+        debugPrint('[LocalAiBridge] Attempting translation via $url');
+        final res = await http
+            .post(
+              Uri.parse('$url/translate'),
+              headers: {'Content-Type': 'application/json; charset=UTF-8'},
+              body: jsonEncode({'text': text, 'src': src, 'tgt': tgt}),
+            )
+            .timeout(const Duration(seconds: 30));
+
+        if (res.statusCode == 200) {
+          _workingUrl = url;
+          return jsonDecode(utf8.decode(res.bodyBytes)) as Map<String, dynamic>;
+        }
+      } catch (e) {
+        debugPrint(
+          '[LocalAiBridge] Translation request exception for $url: $e',
+        );
+      }
+    }
+
+    _workingUrl = null;
+    debugPrint('[LocalAiBridge] ERROR: All local server endpoints failed');
     return null;
   }
 
@@ -79,25 +84,36 @@ class LocalAiBridge {
     String text, {
     String speaker = 'Phulmani',
   }) async {
-    final baseUrl = await getWorkingBaseUrl();
-    if (baseUrl == null) return null;
-
-    try {
-      final res = await http
-          .post(
-            Uri.parse('$baseUrl/tts'),
-            headers: {'Content-Type': 'application/json; charset=UTF-8'},
-            body: jsonEncode({'text': text, 'speaker': speaker}),
-          )
-          .timeout(const Duration(seconds: 30));
-
-      if (res.statusCode == 200) {
-        return jsonDecode(utf8.decode(res.bodyBytes)) as Map<String, dynamic>;
-      }
-    } catch (e) {
-      debugPrint('[LocalAiBridge] TTS request failed: $e');
-      _workingUrl = null;
+    List<String> targetUrls = [];
+    if (_workingUrl != null) {
+      targetUrls.add(_workingUrl!);
     }
+    for (final url in _possibleUrls) {
+      if (!targetUrls.contains(url)) {
+        targetUrls.add(url);
+      }
+    }
+
+    for (final url in targetUrls) {
+      try {
+        final res = await http
+            .post(
+              Uri.parse('$url/tts'),
+              headers: {'Content-Type': 'application/json; charset=UTF-8'},
+              body: jsonEncode({'text': text, 'speaker': speaker}),
+            )
+            .timeout(const Duration(seconds: 30));
+
+        if (res.statusCode == 200) {
+          _workingUrl = url;
+          return jsonDecode(utf8.decode(res.bodyBytes)) as Map<String, dynamic>;
+        }
+      } catch (e) {
+        debugPrint('[LocalAiBridge] TTS request failed for $url: $e');
+      }
+    }
+
+    _workingUrl = null;
     return null;
   }
 
