@@ -683,6 +683,36 @@ class _LiveClassScreenState extends State<LiveClassScreen>
                   ),
           ),
 
+          // Evaluator Demo Quick Phrases Bar
+          Container(
+            height: 42,
+            color: Colors.grey.shade50,
+            padding: const EdgeInsets.symmetric(vertical: 4),
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 14),
+              itemCount: _classroomQuickPrompts.length,
+              separatorBuilder: (context, index) => const SizedBox(width: 8),
+              itemBuilder: (context, index) {
+                final prompt = _classroomQuickPrompts[index];
+                return ActionChip(
+                  label: Text(
+                    prompt,
+                    style: const TextStyle(
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.purple,
+                    ),
+                  ),
+                  backgroundColor: Colors.white,
+                  side: const BorderSide(color: AppColors.line),
+                  elevation: 1,
+                  onPressed: () => _processTeacherSpeech(prompt),
+                );
+              },
+            ),
+          ),
+
           // Bottom Teacher Voice Console
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
