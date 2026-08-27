@@ -221,29 +221,29 @@ class SpeechService {
       debugPrint('[SpeechService] WAV recorder stopped. File: ${audioFile?.path}');
     }
 
-    // 3. Check if STT gave live words
-    final sttText = (currentRecognizedText ?? '').trim();
-    if (sttText.isNotEmpty) {
-      debugPrint('[SpeechService] Returning live STT text: "$sttText"');
-      return sttText;
-    }
-
-    // 4. Fallback: If no live STT text and we have WAV audio, send to IndicConformer
-    if (audioFile != null && await audioFile.exists()) {
-      onStatusUpdate?.call('Transcribing audio with IndicConformer...');
+    // 3. Prioritize sending recorded WAV file to OUR IndicConformer ASR model on local AI server
+    if (audioFile != null && await audioFile.exists() && await audioFile.length() > 0) {
+      onStatusUpdate?.call('Transcribing speech with IndicConformer ASR...');
       try {
         final asrResult = await LocalAiBridge.transcribeAudio(audioFile)
             .timeout(const Duration(seconds: 15));
         if (asrResult != null && asrResult.containsKey('text')) {
           final text = asrResult['text'].toString().trim();
           if (text.isNotEmpty) {
-            debugPrint('[SpeechService] IndicConformer fallback text: "$text"');
+            debugPrint('[SpeechService] IndicConformer ASR transcribed: "$text"');
             return text;
           }
         }
       } catch (e) {
-        debugPrint('[SpeechService] IndicConformer fallback error: $e');
+        debugPrint('[SpeechService] IndicConformer ASR error: $e');
       }
+    }
+
+    // 4. Secondary fallback to live recognized STT words if server ASR unavailable
+    final sttText = (currentRecognizedText ?? '').trim();
+    if (sttText.isNotEmpty) {
+      debugPrint('[SpeechService] Returning live STT text: "$sttText"');
+      return sttText;
     }
 
     return null;
