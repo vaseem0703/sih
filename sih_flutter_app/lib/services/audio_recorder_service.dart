@@ -58,6 +58,8 @@ class AudioRecorderService {
 
       _isRecording = true;
       _currentRecordingPath = filePath;
+      debugPrint('[FLUTTER ASR] RECORD START');
+      debugPrint('[FLUTTER ASR] RECORDING PATH: $filePath');
       return filePath;
     } catch (e) {
       debugPrint('[AudioRecorderService] AudioRecorder start error: $e');
@@ -70,14 +72,13 @@ class AudioRecorderService {
     try {
       final path = await _audioRecorder.stop();
       _isRecording = false;
+      debugPrint('[FLUTTER ASR] RECORD STOP');
 
       if (path != null) {
         final file = File(path);
         if (await file.exists() && await file.length() > 0) {
-          // ignore: avoid_print
-          print(
-            'Recorded valid audio file: $path (${await file.length()} bytes)',
-          );
+          final len = await file.length();
+          debugPrint('[FLUTTER ASR] RECORDED VALID FILE: $path ($len bytes)');
           return file;
         }
       }

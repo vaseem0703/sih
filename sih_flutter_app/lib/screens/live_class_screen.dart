@@ -91,10 +91,11 @@ class _LiveClassScreenState extends State<LiveClassScreen>
     final clean = text.trim();
     if (clean.isEmpty) return;
 
-    _textController.clear();
+    _textController.text = clean;
+    debugPrint('[FLUTTER ASR] UI TEXT UPDATED: "$clean"');
+
     setState(() {
       _isTranslating = true;
-      _liveSpokenText = '';
     });
 
     try {
@@ -157,6 +158,7 @@ class _LiveClassScreenState extends State<LiveClassScreen>
       setState(() {
         _isListening = true;
         _liveSpokenText = '';
+        _textController.text = '';
         _micStatusMessage = 'Starting...';
       });
 

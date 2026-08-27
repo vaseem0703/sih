@@ -40,25 +40,40 @@ class LocalAiBridge {
   /// Sends real recorded WAV audio file to IndicConformer ASR on local AI server
   static Future<Map<String, dynamic>?> transcribeAudio(File audioFile) async {
     final baseUrl = await getWorkingBaseUrl();
-    if (baseUrl == null) return null;
+    final len = await audioFile.length();
+    debugPrint('[FLUTTER ASR] ASR REQUEST START');
+    debugPrint('[FLUTTER ASR] AUDIO PATH: ${audioFile.path}');
+    debugPrint('[FLUTTER ASR] AUDIO SIZE: $len bytes');
+
+    if (baseUrl == null) {
+      debugPrint('[FLUTTER ASR] ERROR: Local server unreachable');
+      return null;
+    }
 
     try {
       final uri = Uri.parse('$baseUrl/asr');
+      debugPrint('[FLUTTER ASR] ASR URL: $uri');
       final request = http.MultipartRequest('POST', uri);
       request.files.add(
         await http.MultipartFile.fromPath('audio', audioFile.path),
       );
 
       final streamedResponse = await request.send().timeout(
-        const Duration(seconds: 15),
+        const Duration(seconds: 25),
       );
       final response = await http.Response.fromStream(streamedResponse);
+      final responseText = utf8.decode(response.bodyBytes);
+      debugPrint('[FLUTTER ASR] HTTP STATUS: ${response.statusCode}');
+      debugPrint('[FLUTTER ASR] RESPONSE: $responseText');
 
       if (response.statusCode == 200) {
-        return jsonDecode(utf8.decode(response.bodyBytes))
-            as Map<String, dynamic>;
+        final jsonMap = jsonDecode(responseText) as Map<String, dynamic>;
+        final extractedText = jsonMap['text']?.toString() ?? '';
+        debugPrint('[FLUTTER ASR] EXTRACTED TEXT: "$extractedText"');
+        return jsonMap;
       }
-    } catch (_) {
+    } catch (e) {
+      debugPrint('[FLUTTER ASR] HTTP Exception: $e');
       _workingUrl = null;
     }
     return null;
