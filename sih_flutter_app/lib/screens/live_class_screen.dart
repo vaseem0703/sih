@@ -143,14 +143,17 @@ class _LiveClassScreenState extends State<LiveClassScreen>
         },
       );
 
+      debugPrint('[ASR DEBUG] UI RECEIVED TEXT = "$asrText"');
       if (mounted) setState(() => _micStatusMessage = '');
 
       final textToProcess = (asrText != null && asrText.isNotEmpty)
           ? asrText
           : _liveSpokenText;
       if (textToProcess.isNotEmpty) {
+        debugPrint('[ASR DEBUG] UI TEXT UPDATED = "$textToProcess"');
         _processTeacherSpeech(textToProcess);
       } else {
+        debugPrint('[ASR DEBUG] UI RESULT IS EMPTY — NO TEXT SHOWN');
         if (mounted) setState(() => _isTranslating = false);
       }
     } else {

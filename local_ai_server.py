@@ -182,16 +182,21 @@ def transcribe_hindi_audio(audio_path):
             try:
                 import librosa
                 y, sr = librosa.load(audio_path, sr=16000, mono=True)
+                max_amp = float(np.abs(y).max()) if len(y) > 0 else 0.0
+                if max_amp > 1e-5:
+                    y = (y / max_amp) * 0.95
+
                 clean_path = audio_path.replace('.wav', '_clean.wav').replace('.m4a', '_clean.wav')
                 sf.write(clean_path, y, 16000, subtype='PCM_16')
                 target_path = clean_path
+                print(f"[ASR SERVER] Audio normalized (peak_amp was {max_amp:.4f}): {target_path}")
             except Exception as clean_err:
-                print(f"[AI Server] Audio clean notice: {clean_err}")
+                print(f"[ASR SERVER] Audio clean notice: {clean_err}")
 
             with torch.inference_mode():
                 try:
                     transcriptions = asr_model.transcribe(audio=[target_path], batch_size=1, num_workers=0)
-                except TypeError:
+                except Exception:
                     transcriptions = asr_model.transcribe([target_path])
                 
                 if isinstance(transcriptions, tuple):
@@ -204,7 +209,7 @@ def transcribe_hindi_audio(audio_path):
                 elif isinstance(transcriptions, str):
                     return transcriptions.strip()
         except Exception as e:
-            print(f"[AI Server] IndicConformer inference error: {e}")
+            print(f"[ASR SERVER] IndicConformer inference error: {e}")
     return None
 
 def translate_hindi_to_santali(text):

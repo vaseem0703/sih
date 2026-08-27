@@ -209,8 +209,8 @@ class SpeechService {
             return text;
           }
         }
-      } catch (e) {
-        debugPrint('[ASR DEBUG] SpeechService ASR Exception: $e');
+      } catch (e, stackTrace) {
+        debugPrint('[ASR DEBUG] SpeechService ASR Exception: $e\n$stackTrace');
       }
       onStatusUpdate?.call('Local ASR unavailable');
       return null;

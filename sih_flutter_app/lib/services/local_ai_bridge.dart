@@ -73,8 +73,8 @@ class LocalAiBridge {
         debugPrint('[ASR DEBUG] EXTRACTED TEXT = "$extractedText"');
         return jsonMap;
       }
-    } catch (e) {
-      debugPrint('[ASR DEBUG] HTTP Exception: $e');
+    } catch (e, stackTrace) {
+      debugPrint('[ASR DEBUG] HTTP Exception: $e\n$stackTrace');
       _workingUrl = null;
     }
     return null;
