@@ -151,8 +151,6 @@ class SpeechService {
     Function(String status)? onStatusUpdate,
     String? localeId,
   }) async {
-    _globalStatusCallback = onStatusUpdate;
-
     // 1. Permission Check
     final hasPerm = await requestMicPermission();
     if (!hasPerm) {
