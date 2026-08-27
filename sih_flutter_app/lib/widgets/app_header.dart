@@ -2,9 +2,7 @@ import 'package:flutter/material.dart';
 import '../app/theme.dart';
 
 class AppHeader extends StatelessWidget {
-  final VoidCallback? onOfflineTap;
-
-  const AppHeader({super.key, this.onOfflineTap});
+  const AppHeader({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -84,54 +82,6 @@ class AppHeader extends StatelessWidget {
                   ),
                 ),
               ],
-            ),
-          ),
-
-          const SizedBox(width: 6),
-
-          // Offline Ready Pill
-          GestureDetector(
-            onTap:
-                onOfflineTap ??
-                () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text(
-                        'Offline Ready • Translation, lessons and audio available',
-                      ),
-                      duration: Duration(seconds: 2),
-                    ),
-                  );
-                },
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                color: const Color(0xFFF1F6F3),
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: const Color(0xFFD7E9DD)),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                    width: 6,
-                    height: 6,
-                    decoration: const BoxDecoration(
-                      color: Color(0xFF7DD28F),
-                      shape: BoxShape.circle,
-                    ),
-                  ),
-                  const SizedBox(width: 4),
-                  const Text(
-                    'Offline Ready',
-                    style: TextStyle(
-                      color: Color(0xFF39764E),
-                      fontSize: 10,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ],
-              ),
             ),
           ),
         ],
