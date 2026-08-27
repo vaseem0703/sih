@@ -20,13 +20,15 @@ class LocalAiBridge {
       try {
         final res = await http
             .get(Uri.parse('$url/status'))
-            .timeout(const Duration(seconds: 2));
+            .timeout(const Duration(seconds: 5));
         if (res.statusCode == 200) {
           _workingUrl = url;
-          debugPrint('[LocalAiBridge] Found active local AI server: $url');
+          debugPrint('[LocalAiBridge] Connected to local AI server: $url');
           return _workingUrl;
         }
-      } catch (_) {}
+      } catch (e) {
+        debugPrint('[LocalAiBridge] Server probe failed for $url: $e');
+      }
     }
     return _workingUrl;
   }
@@ -41,8 +43,16 @@ class LocalAiBridge {
     String src = 'hin_Deva',
     String tgt = 'sat_Olck',
   }) async {
-    final baseUrl = await getWorkingBaseUrl();
-    if (baseUrl == null) return null;
+    String? baseUrl = await getWorkingBaseUrl();
+    if (baseUrl == null) {
+      baseUrl = await getWorkingBaseUrl(forceRefresh: true);
+    }
+    if (baseUrl == null) {
+      debugPrint(
+        '[LocalAiBridge] ERROR: Local AI server unreachable on all endpoints',
+      );
+      return null;
+    }
 
     try {
       final res = await http
@@ -51,13 +61,15 @@ class LocalAiBridge {
             headers: {'Content-Type': 'application/json; charset=UTF-8'},
             body: jsonEncode({'text': text, 'src': src, 'tgt': tgt}),
           )
-          .timeout(const Duration(seconds: 15));
+          .timeout(const Duration(seconds: 30));
 
       if (res.statusCode == 200) {
         return jsonDecode(utf8.decode(res.bodyBytes)) as Map<String, dynamic>;
+      } else {
+        debugPrint('[LocalAiBridge] HTTP error ${res.statusCode}: ${res.body}');
       }
     } catch (e) {
-      debugPrint('[LocalAiBridge] Translation request failed: $e');
+      debugPrint('[LocalAiBridge] Translation request exception: $e');
       _workingUrl = null;
     }
     return null;
