@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import '../app/theme.dart';
 import '../models/translation_result.dart';
 import '../services/speech_service.dart';
@@ -32,6 +32,7 @@ class _LiveClassScreenState extends State<LiveClassScreen> with SingleTickerProv
   bool _isListening = false;
   bool _isTranslating = false;
   String _liveSpokenText = '';
+  String _micStatusMessage = ''; // live feedback under mic
 
   final List<TranslationResult> _messages = [];
 
@@ -54,7 +55,8 @@ class _LiveClassScreenState extends State<LiveClassScreen> with SingleTickerProv
   @override
   void initState() {
     super.initState();
-    widget.speechService.requestMicPermission();
+    // Warm up STT eagerly: permission + locale discovery
+    widget.speechService.warmUp();
   }
 
   @override
@@ -125,34 +127,35 @@ class _LiveClassScreenState extends State<LiveClassScreen> with SingleTickerProv
 
   void _toggleLiveMic() async {
     if (_isListening) {
+      // ── STOP path ──────────────────────────────────────────────
       setState(() {
         _isListening = false;
         _isTranslating = true;
+        _micStatusMessage = 'Processing...';
       });
 
       final asrText = await widget.speechService.stopListeningAndTranscribe(
         currentRecognizedText: _liveSpokenText,
         onStatusUpdate: (status) {
-          if (mounted && status.isNotEmpty) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text(status), duration: const Duration(milliseconds: 1000)),
-            );
-          }
+          if (mounted) setState(() => _micStatusMessage = status);
         },
       );
 
-      final textToProcess = (asrText != null && asrText.isNotEmpty) ? asrText : _liveSpokenText;
+      if (mounted) setState(() => _micStatusMessage = '');
+
+      final textToProcess =
+          (asrText != null && asrText.isNotEmpty) ? asrText : _liveSpokenText;
       if (textToProcess.isNotEmpty) {
         _processTeacherSpeech(textToProcess);
       } else {
-        if (mounted) {
-          setState(() => _isTranslating = false);
-        }
+        if (mounted) setState(() => _isTranslating = false);
       }
     } else {
+      // ── START path ─────────────────────────────────────────────
       setState(() {
         _isListening = true;
         _liveSpokenText = '';
+        _micStatusMessage = 'Starting...';
       });
 
       final success = await widget.speechService.startListening(
@@ -161,20 +164,32 @@ class _LiveClassScreenState extends State<LiveClassScreen> with SingleTickerProv
             setState(() {
               _liveSpokenText = spoken;
               _textController.text = spoken;
+              _micStatusMessage = '';
             });
           }
         },
         onStatusUpdate: (msg) {
-          if (mounted && msg.isNotEmpty && !msg.startsWith("Listening")) {
+          if (!mounted) return;
+          setState(() => _micStatusMessage = msg);
+          // Show persistent errors as snackbar too
+          if (msg.isNotEmpty &&
+              !msg.startsWith('Listening') &&
+              !msg.startsWith('Starting') &&
+              !msg.startsWith('Processing')) {
             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text(msg), duration: const Duration(seconds: 2)),
+              SnackBar(content: Text(msg), duration: const Duration(seconds: 4)),
             );
           }
         },
       );
 
       if (!success && mounted) {
-        setState(() => _isListening = false);
+        setState(() {
+          _isListening = false;
+          _micStatusMessage = '';
+        });
+      } else if (mounted) {
+        setState(() => _micStatusMessage = 'Listening — speak Hindi...');
       }
     }
   }
@@ -523,9 +538,20 @@ class _LiveClassScreenState extends State<LiveClassScreen> with SingleTickerProv
                       child: TextField(
                         controller: _textController,
                         decoration: InputDecoration(
-                          hintText: _isListening ? 'Listening to teacher...' : 'Speak or type classroom instruction...',
+                          hintText: (_isListening && _liveSpokenText.isEmpty)
+                              ? (_micStatusMessage.isNotEmpty
+                                  ? _micStatusMessage
+                                  : 'Listening — speak Hindi...')
+                              : (!_isListening
+                                  ? 'Speak or type classroom instruction...'
+                                  : _liveSpokenText),
                           hintStyle: TextStyle(
-                            color: _isListening ? Colors.redAccent : AppColors.textMuted,
+                            color: _isListening
+                                ? (_micStatusMessage.contains('denied') ||
+                                        _micStatusMessage.contains('unavailable')
+                                    ? Colors.orange
+                                    : Colors.redAccent)
+                                : AppColors.textMuted,
                             fontWeight: _isListening ? FontWeight.bold : FontWeight.normal,
                             fontSize: 13.5,
                           ),

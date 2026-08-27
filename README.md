@@ -23,10 +23,12 @@ SIH_Translator/
 ├── download_indictrans2.py     # Download script for IndicTrans2 weights
 ├── download_quipus.py          # Download script for Quipus TTS weights
 ├── local_ai_server.py          # Local Python AI Bridge Server (ASR + NMT + TTS)
-├── test_indictrans2.py         # Offline IndicTrans2 verification
-├── verify_stage15_tts.py       # Quipus TTS 24kHz verification
-├── verify_multilanguage.py     # Multilingual IndicTrans2 verification (10 languages)
-├── run_cli.py                  # Interactive CLI for offline classroom translation
+├── scripts/                    # Offline testing, verification, and CLI scripts
+│   ├── test_indictrans2.py     # Offline IndicTrans2 verification
+│   ├── verify_stage15_tts.py   # Quipus TTS 24kHz verification
+│   ├── verify_multilanguage.py # Multilingual IndicTrans2 verification (10 languages)
+│   ├── run_cli.py              # Interactive CLI for offline classroom translation
+│   └── ...                     # Additional benchmark and investigation scripts
 └── .gitignore                  # Clean repository ignore configuration
 ```
 
@@ -123,13 +125,13 @@ Run the self-contained verification scripts to test the AI models:
 
 ```bash
 # Test IndicTrans2 Hindi ➔ Santali Ol Chiki Translation
-python test_indictrans2.py
+python scripts/test_indictrans2.py
 
 # Test Multilingual Translation across 10 Indian Languages
-python verify_multilanguage.py
+python scripts/verify_multilanguage.py
 
 # Test Quipus Santali Voice Synthesis
-python verify_stage15_tts.py
+python scripts/verify_stage15_tts.py
 ```
 
 ---
