@@ -130,7 +130,7 @@ class SpeechService {
   }
 
   // ─────────────────────────────────────────────────────
-  // Start Listening — Direct WAV Recording for IndicConformer ASR AI Model
+  // Start Listening — Live STT Streaming + Parallel WAV Recording
   // ─────────────────────────────────────────────────────
   Future<bool> startListening({
     required Function(String text) onResult,
@@ -146,30 +146,62 @@ class SpeechService {
       return false;
     }
 
-    // 2. Start Direct WAV Recording for IndicConformer ASR Model
-    onStatusUpdate?.call('Listening — speak Hindi...');
+    // 2. Always start WAV Audio Recorder in parallel for IndicConformer ASR
     try {
       final recPath = await _audioRecorder.startRecording();
       if (recPath != null) {
         _isWavRecording = true;
-        debugPrint('[SpeechService] Direct WAV recording started for IndicConformer ASR: $recPath');
-        return true;
+        debugPrint('[SpeechService] Parallel WAV recording started for IndicConformer ASR: $recPath');
       }
     } catch (e) {
       debugPrint('[SpeechService] WAV Recording start exception: $e');
-      onStatusUpdate?.call('Recorder Exception: $e');
     }
-    return false;
+
+    onStatusUpdate?.call('Listening — speak Hindi...');
+
+    // 3. Start Live STT streaming for real-time text on screen
+    final sttOk = await _initSTT(onStatusUpdate: onStatusUpdate);
+    if (sttOk) {
+      final locale = localeId ?? await _findHindiLocale();
+      try {
+        await _speech.listen(
+          onResult: (result) {
+            final words = result.recognizedWords.trim();
+            debugPrint('[SpeechService] Live streaming STT -> "$words" (final=${result.finalResult})');
+            if (words.isNotEmpty) {
+              onResult(words);
+            }
+          },
+          listenOptions: stt.SpeechListenOptions(
+            localeId: locale,
+            listenFor: const Duration(seconds: 60),
+            pauseFor: const Duration(seconds: 10),
+            cancelOnError: false,
+            partialResults: true,
+          ),
+        );
+        debugPrint('[SpeechService] Live STT streaming initiated.');
+      } catch (e) {
+        debugPrint('[SpeechService] Live STT exception: $e');
+      }
+    }
+
+    return _isWavRecording || _speech.isListening;
   }
 
   // ─────────────────────────────────────────────────────
-  // Stop Listening & Transcribe with IndicConformer ASR AI Model
+  // Stop Listening & Transcribe
   // ─────────────────────────────────────────────────────
   Future<String?> stopListeningAndTranscribe({
     String? currentRecognizedText,
     Function(String status)? onStatusUpdate,
   }) async {
-    // 1. Stop WAV recorder
+    // 1. Stop STT if running
+    try {
+      if (_speech.isListening) await _speech.stop();
+    } catch (_) {}
+
+    // 2. Stop WAV recorder
     File? audioFile;
     if (_isWavRecording) {
       _isWavRecording = false;
@@ -177,9 +209,16 @@ class SpeechService {
       debugPrint('[SpeechService] WAV recorder stopped. File: ${audioFile?.path}');
     }
 
-    // 2. Send recorded WAV voice audio to OUR IndicConformer ASR AI Model
+    // 3. Return live recognized STT text if available
+    final liveText = (currentRecognizedText ?? '').trim();
+    if (liveText.isNotEmpty) {
+      debugPrint('[SpeechService] Returning live STT text: "$liveText"');
+      return liveText;
+    }
+
+    // 4. Send recorded WAV voice audio to IndicConformer ASR AI Model if live text was empty
     if (audioFile != null && await audioFile.exists() && await audioFile.length() > 0) {
-      onStatusUpdate?.call('Transcribing speech with IndicConformer ASR...');
+      onStatusUpdate?.call('Transcribing audio with IndicConformer ASR...');
       try {
         final asrResult = await LocalAiBridge.transcribeAudio(audioFile)
             .timeout(const Duration(seconds: 15));
@@ -192,7 +231,6 @@ class SpeechService {
         }
       } catch (e) {
         debugPrint('[SpeechService] IndicConformer ASR error: $e');
-        onStatusUpdate?.call('IndicConformer ASR error: $e');
       }
     }
 
