@@ -17,40 +17,43 @@ class TranslationService {
     debugPrint('SOURCE: $srcLangCode | TARGET: $tgtLangCode');
     debugPrint('INPUT: "$cleanInput"');
 
-    // 1. Real IndicTrans2 Neural Machine Translation (hin_Deva -> sat_Olck)
-    final isServerOnline = await LocalAiBridge.checkServerStatus();
-    if (isServerOnline) {
-      final res = await LocalAiBridge.translateText(
-        cleanInput,
-        src: srcLangCode,
-        tgt: tgtLangCode,
-      );
-      if (res != null && res['translation'] != null) {
-        stopwatch.stop();
-        final outText = res['translation'].toString().trim();
-        debugPrint('OUTPUT SANTALI (IndicTrans2): "$outText"');
-        debugPrint('LATENCY: ${stopwatch.elapsedMilliseconds / 1000.0}s');
-        debugPrint('==================================================');
+    // Always enforce Hindi Devanagari as source for speech ASR inputs if input contains Devanagari
+    final effectiveSrc = (srcLangCode == tgtLangCode || srcLangCode == 'sat_Olck')
+        ? 'hin_Deva'
+        : srcLangCode;
 
-        return TranslationResult(
-          originalHindi: cleanInput,
-          santaliOlChiki: outText,
-          transliteration: res['transliteration'] ?? 'Santali (Ol Chiki)',
-          latencySeconds: stopwatch.elapsedMilliseconds / 1000.0,
-          isOffline: true,
-          source: 'REAL_LOCAL_AI (IndicTrans2)',
-        );
-      }
+    // 1. Direct call to LocalAiBridge.translateText (with automatic connection retry)
+    final res = await LocalAiBridge.translateText(
+      cleanInput,
+      src: effectiveSrc,
+      tgt: tgtLangCode,
+    );
+
+    if (res != null && res['translation'] != null) {
+      stopwatch.stop();
+      final outText = res['translation'].toString().trim();
+      debugPrint('OUTPUT SANTALI (IndicTrans2): "$outText"');
+      debugPrint('LATENCY: ${stopwatch.elapsedMilliseconds / 1000.0}s');
+      debugPrint('==================================================');
+
+      return TranslationResult(
+        originalHindi: cleanInput,
+        santaliOlChiki: outText,
+        transliteration: res['transliteration'] ?? 'Santali (Ol Chiki)',
+        latencySeconds: stopwatch.elapsedMilliseconds / 1000.0,
+        isOffline: true,
+        source: 'REAL_LOCAL_AI (IndicTrans2)',
+      );
     }
 
     stopwatch.stop();
-    debugPrint('OUTPUT: Translation unavailable (IndicTrans2 server offline)');
+    debugPrint('OUTPUT: Translation unavailable (Local AI Server Unreachable)');
     debugPrint('==================================================');
 
     return TranslationResult(
       originalHindi: cleanInput,
       santaliOlChiki: 'Translation unavailable',
-      transliteration: 'IndicTrans2 Offline',
+      transliteration: 'IndicTrans2 Offline (Ensure local_ai_server.py is running)',
       latencySeconds: stopwatch.elapsedMilliseconds / 1000.0,
       isOffline: true,
       source: 'TRANSLATION_FAILURE',
