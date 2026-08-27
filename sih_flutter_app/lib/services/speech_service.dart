@@ -169,6 +169,13 @@ class SpeechService {
           },
         );
         debugPrint('[SpeechService] listen() initiated successfully.');
+
+        // Also start WAV recorder in parallel for IndicConformer backup ASR
+        try {
+          await _audioRecorder.startRecording();
+          _isWavRecording = true;
+        } catch (_) {}
+
         return true;
       } catch (e) {
         debugPrint('[SpeechService] listen() threw exception: $e');
@@ -176,9 +183,9 @@ class SpeechService {
       }
     }
 
-    // Fallback: If STT fails to start, fallback to WAV recording mode for IndicConformer
-    debugPrint('[SpeechService] STT unavailable. Falling back to WAV recorder for IndicConformer.');
-    onStatusUpdate?.call('STT unavailable. Recording audio for IndicConformer...');
+    // Fallback: If STT fails to start, start WAV recorder mode for IndicConformer
+    debugPrint('[SpeechService] STT unavailable. Recording audio for IndicConformer...');
+    onStatusUpdate?.call('Recording audio for IndicConformer...');
     try {
       await _audioRecorder.startRecording();
       _isWavRecording = true;
@@ -226,7 +233,7 @@ class SpeechService {
       onStatusUpdate?.call('Transcribing audio with IndicConformer...');
       try {
         final asrResult = await LocalAiBridge.transcribeAudio(audioFile)
-            .timeout(const Duration(seconds: 6));
+            .timeout(const Duration(seconds: 15));
         if (asrResult != null && asrResult.containsKey('text')) {
           final text = asrResult['text'].toString().trim();
           if (text.isNotEmpty) {
