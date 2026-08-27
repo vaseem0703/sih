@@ -158,13 +158,13 @@ class SpeechService {
       return false;
     }
 
-    // 2. Always start WAV Audio Recorder in parallel for IndicConformer ASR
+    // 2. Start WAV Audio Recorder with 100% EXCLUSIVE hardware microphone access
     try {
       final recPath = await _audioRecorder.startRecording();
       if (recPath != null) {
         _isWavRecording = true;
         debugPrint(
-          '[SpeechService] Parallel WAV recording started for IndicConformer ASR: $recPath',
+          '[SpeechService] EXCLUSIVE mic capture started for IndicConformer ASR: $recPath',
         );
       }
     } catch (e) {
@@ -172,37 +172,7 @@ class SpeechService {
     }
 
     onStatusUpdate?.call('Listening — speak Hindi...');
-
-    // 3. Start Live STT streaming for real-time text on screen
-    final sttOk = await _initSTT(onStatusUpdate: onStatusUpdate);
-    if (sttOk) {
-      final locale = localeId ?? await _findHindiLocale();
-      try {
-        await _speech.listen(
-          onResult: (result) {
-            final words = result.recognizedWords.trim();
-            debugPrint(
-              '[SpeechService] Live streaming STT -> "$words" (final=${result.finalResult})',
-            );
-            if (words.isNotEmpty) {
-              onResult(words);
-            }
-          },
-          listenOptions: stt.SpeechListenOptions(
-            localeId: locale,
-            listenFor: const Duration(seconds: 60),
-            pauseFor: const Duration(seconds: 10),
-            cancelOnError: false,
-            partialResults: true,
-          ),
-        );
-        debugPrint('[SpeechService] Live STT streaming initiated.');
-      } catch (e) {
-        debugPrint('[SpeechService] Live STT exception: $e');
-      }
-    }
-
-    return _isWavRecording || _speech.isListening;
+    return _isWavRecording;
   }
 
   // ─────────────────────────────────────────────────────

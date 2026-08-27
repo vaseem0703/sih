@@ -72,13 +72,51 @@ class AudioRecorderService {
     try {
       final path = await _audioRecorder.stop();
       _isRecording = false;
-      debugPrint('[FLUTTER ASR] RECORD STOP');
 
       if (path != null) {
         final file = File(path);
         if (await file.exists() && await file.length() > 0) {
           final len = await file.length();
-          debugPrint('[FLUTTER ASR] RECORDED VALID FILE: $path ($len bytes)');
+          final bytes = await file.readAsBytes();
+
+          double rms = 0.0;
+          int peak = 0;
+          int minSample = 0;
+          int maxSample = 0;
+
+          if (bytes.length > 44) {
+            final pcmData = bytes.sublist(44);
+            double sumSq = 0.0;
+            int count = pcmData.length ~/ 2;
+            for (int i = 0; i < pcmData.length - 1; i += 2) {
+              int sample = pcmData[i] | (pcmData[i + 1] << 8);
+              if (sample > 32767) sample -= 65536;
+              final absSample = sample.abs();
+              if (absSample > peak) peak = absSample;
+              if (sample < minSample) minSample = sample;
+              if (sample > maxSample) maxSample = sample;
+              sumSq += (sample.toDouble() * sample.toDouble());
+            }
+            if (count > 0) {
+              rms = sumSq / count;
+            }
+          }
+
+          debugPrint('[PHONE MIC TEST] RECORDING STOPPED');
+          debugPrint('[PHONE MIC TEST] AUDIO PATH: $path');
+          debugPrint('[PHONE MIC TEST] AUDIO SIZE: $len bytes');
+          debugPrint(
+            '[PHONE MIC TEST] AUDIO FORMAT: ${path.endsWith('.wav') ? 'WAV (PCM 16-bit)' : 'AAC (.m4a)'}',
+          );
+          debugPrint('[PHONE MIC TEST] SAMPLE RATE: 16000 Hz');
+          debugPrint('[PHONE MIC TEST] CHANNELS: 1 (Mono)');
+          debugPrint(
+            '[PHONE MIC TEST] DURATION: ${(len / 32000).toStringAsFixed(2)} seconds',
+          );
+          debugPrint(
+            '[PHONE MIC TEST] AUDIO RMS / SIGNAL ENERGY: ${rms.toStringAsFixed(2)} (peak=$peak, min=$minSample, max=$maxSample)',
+          );
+
           return file;
         }
       }
