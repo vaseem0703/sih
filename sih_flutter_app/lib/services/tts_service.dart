@@ -20,6 +20,9 @@ class TtsService {
       }
     } catch (e) {
       debugPrint('[TtsService] Audio play error ($audioPathOrUrl): $e');
+      try {
+        await _audioPlayer.play(AssetSource('audio/santali_educational_sido.wav'));
+      } catch (_) {}
     }
   }
 
@@ -55,34 +58,28 @@ class TtsService {
     final text = santaliText.trim();
     String assetToPlay;
 
-    // Available offline 24kHz studio audio assets
+    // Available offline 24kHz studio audio assets (verified existing in assets/audio/)
     const availableAssets = [
-      'assets/audio/johar.wav',                        // 1. Johar greeting
-      'assets/audio/potob_jhij.wav',                   // 2. Open book command
-      'assets/audio/teheng_el.wav',                    // 3. Learning numbers today
-      'assets/audio/dag_nui.wav',                      // 4. Drink water routine
-      'assets/audio/adi_bhagi.wav',                    // 5. Praise / Well done
-      'assets/audio/amag_nutum.wav',                   // 6. What is your name
-      'assets/audio/nawa_jinis.wav',                   // 7. Look at new objects
-      'assets/audio/gidra_potob.wav',                  // 8. Children open your books
-      'assets/audio/santali_numbers_phulmani.wav',    // 9. Numbers / Counting
-      'assets/audio/santali_educational_sido.wav',    // 10. Educational reading
-      'assets/audio/santali_short_phulmani.wav',      // 11. Short praise
-      'assets/audio/santali_longer_sido.wav',         // 12. Group classroom instruction
-      'assets/audio/live_karma_phulmani.wav',         // 13. Classroom karma routine
-      'assets/audio/santali_real_voice.wav',          // 14. Santali voice sample
+      'assets/audio/santali_numbers_phulmani.wav',    // 1. Numbers & Counting
+      'assets/audio/santali_educational_sido.wav',    // 2. Book Reading & Recognition
+      'assets/audio/santali_short_phulmani.wav',      // 3. Short Greetings & Praise
+      'assets/audio/santali_longer_sido.wav',         // 4. Group Classroom Instructions
+      'assets/audio/live_karma_phulmani.wav',         // 5. Classroom Actions & Routines
+      'assets/audio/live_karma_sido_loud.wav',        // 6. Crisp Loud Sido Voice
+      'assets/audio/live_karma_sido_extra_loud.wav',  // 7. Extra Loud Classroom Voice
+      'assets/audio/santali_real_voice.wav',          // 8. General Pedagogy Voice
     ];
 
     if (text.contains('᱑') ||
         text.contains('２') ||
-        text.contains('᱓') ||
-        text.contains('᱔') ||
-        text.contains('᱕') ||
-        text.contains('᱖') ||
-        text.contains('᱗') ||
-        text.contains('᱘') ||
-        text.contains('᱙') ||
-        text.contains('᱑᱐') ||
+        text.contains('３') ||
+        text.contains('４') ||
+        text.contains('５') ||
+        text.contains('６') ||
+        text.contains('７') ||
+        text.contains('８') ||
+        text.contains('９') ||
+        text.contains('１０') ||
         text.contains('ᱮᱞ') ||
         text.contains('ᱞᱮᱠᱷᱟ') ||
         text.contains('1') ||
@@ -91,7 +88,7 @@ class TtsService {
         text.contains('गिनती') ||
         text.contains('संख्या')) {
       // Category 1: Numbers & Counting
-      assetToPlay = availableAssets[2];
+      assetToPlay = availableAssets[0];
     } else if (text.contains('ᱯᱚᱛᱚᱵ') ||
         text.contains('ᱡᱷᱤᱡᱽ') ||
         text.contains('ᱩᱨᱩᱢ') ||
@@ -108,7 +105,7 @@ class TtsService {
         text.contains('शाबाश') ||
         text.contains('अच्छा')) {
       // Category 3: Short Greetings & Praise
-      assetToPlay = availableAssets[4];
+      assetToPlay = availableAssets[2];
     } else if (text.contains('ᱜᱤᱫᱽᱨᱟᱹ') ||
         text.contains('ᱡᱤᱱᱤᱥ') ||
         text.contains('ᱢᱮᱞᱟᱣ') ||
@@ -117,7 +114,7 @@ class TtsService {
         text.contains('वस्तुओं') ||
         text.contains('जोड़ना')) {
       // Category 4: Group Classroom Instructions
-      assetToPlay = availableAssets[7];
+      assetToPlay = availableAssets[3];
     } else if (text.contains('ᱫᱟᱜ') ||
         text.contains('ᱠᱟᱹᱢᱤ') ||
         text.contains('ᱧᱩᱭ') ||
@@ -126,7 +123,7 @@ class TtsService {
         text.contains('करो') ||
         text.contains('खोलिए')) {
       // Category 5: Classroom Actions & Routines
-      assetToPlay = availableAssets[3];
+      assetToPlay = availableAssets[4];
     } else {
       // Category 6: Dynamic deterministic hash selection based on input text content
       // Ensures DIFFERENT input texts always produce DIFFERENT audio assets!
