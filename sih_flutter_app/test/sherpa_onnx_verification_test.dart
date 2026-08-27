@@ -22,7 +22,7 @@ void main() {
       model: modelConfig,
     );
     print('OfflineRecognizerConfig debug: ${recognizerConfig.model.debug}');
-    
+
     // Test getResult signature check
     final recognizer = sherpa_onnx.OfflineRecognizer(recognizerConfig);
     print('Recognizer created: $recognizer');

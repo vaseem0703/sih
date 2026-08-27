@@ -27,7 +27,7 @@ class OnDeviceAsrService {
   static const String _modelDownloadUrl =
       'https://huggingface.co/parismitaglobalsolutions/indicconformer-sherpa-onnx/resolve/main/hi/model.int8.onnx';
   static const String _tokensDownloadUrl =
-      'https://huggingface.co/parismitaglobalsolutions/indicconformer-sherpa-onnx/resolve/main/hi/tokens.txt';
+      'https://huggingface.co/parismitaglobalsolutions/indicconformer-sherpa-onnx/resolve/main/tokens.txt';
 
   Future<String> _getModelDir() async {
     final docsDir = await getApplicationDocumentsDirectory();
@@ -83,24 +83,35 @@ class OnDeviceAsrService {
       final tokensFile = File('$dirPath/tokens.txt');
 
       // 1. Download tokens.txt
-      debugPrint('[OnDeviceAsrService] Downloading tokens.txt...');
+      debugPrint(
+        '[OnDeviceAsrService] Downloading tokens.txt from $_tokensDownloadUrl...',
+      );
       final tokensRes = await http.get(Uri.parse(_tokensDownloadUrl));
       if (tokensRes.statusCode == 200) {
         await tokensFile.writeAsBytes(tokensRes.bodyBytes);
+        debugPrint(
+          '[OnDeviceAsrService] tokens.txt downloaded successfully (${tokensRes.bodyBytes.length} bytes)',
+        );
       } else {
         throw Exception(
-          'Failed to download tokens.txt (${tokensRes.statusCode})',
+          'Failed to download tokens.txt (HTTP ${tokensRes.statusCode})',
         );
       }
 
-      // 2. Download model.int8.onnx with stream progress
-      debugPrint('[OnDeviceAsrService] Downloading model.int8.onnx...');
+      // 2. Download model.int8.onnx with stream progress & redirect support
+      debugPrint(
+        '[OnDeviceAsrService] Downloading model.int8.onnx from $_modelDownloadUrl...',
+      );
+      final client = http.Client();
       final request = http.Request('GET', Uri.parse(_modelDownloadUrl));
-      final response = await http.Client().send(request);
+      request.followRedirects = true;
+      request.maxRedirects = 10;
+
+      final response = await client.send(request);
 
       if (response.statusCode != 200) {
         throw Exception(
-          'Failed to download model.int8.onnx (${response.statusCode})',
+          'Failed to download model.int8.onnx (HTTP ${response.statusCode})',
         );
       }
 
