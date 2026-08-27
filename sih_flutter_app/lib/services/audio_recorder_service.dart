@@ -39,6 +39,9 @@ class AudioRecorderService {
             encoder: AudioEncoder.wav,
             sampleRate: 16000,
             numChannels: 1,
+            autoGain: true,
+            echoCancel: true,
+            noiseSuppress: true,
           ),
           path: filePath,
         );
@@ -51,6 +54,9 @@ class AudioRecorderService {
             encoder: AudioEncoder.aacLc,
             sampleRate: 16000,
             numChannels: 1,
+            autoGain: true,
+            echoCancel: true,
+            noiseSuppress: true,
           ),
           path: filePath,
         );
