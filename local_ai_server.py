@@ -195,19 +195,12 @@ def transcribe_hindi_audio(audio_path):
                     return transcriptions.strip()
         except Exception as e:
             print(f"[AI Server] IndicConformer inference error: {e}")
-    return None 
-    try:
-        data, sr = sf.read(audio_path)
-        if len(data) > sr * 0.3:
-            return "अपनी किताब खोलो"
-    except Exception:
-        pass
-    return ""
+    return None
 
 def translate_hindi_to_santali(text):
     load_translation_model()
-    if model_trans is None:
-        return "ᱛᱮᱦᱮᱧ ᱟᱵᱚ ᱮᱞ ᱵᱚᱱ ᱪᱮᱫᱟ ᱾", "Teheng abo el bon cheda."
+    if model_trans is None or tokenizer_trans is None:
+        return None, "Translation model unavailable"
     
     formatted_input = f"hin_Deva sat_Olck {text}"
     tgt_lang_id = tokenizer_trans.tgt_encoder.get("sat_Olck")
@@ -229,14 +222,14 @@ def synthesize_santali_tts(speaker, text, filename="output.wav"):
     load_tts_model()
     out_path = os.path.join(OUTPUT_AUDIO_DIR, filename)
     
-    if model_tts is None or snac_decoder is None:
-        return out_path, 0.0
+    if model_tts is None or snac_decoder is None or tokenizer_tts is None:
+        return None, 0.0
 
     prompt = f"{speaker}: {text} <audio_start> "
     inputs = tokenizer_tts(prompt, return_tensors="pt").to("cpu")
     
-    # Calculate optimal token count based on sentence length for high-speed synthesis
-    dynamic_max_tokens = min(160, max(48, len(text) * 6))
+    # Calculate optimal token count based on sentence length for complete untruncated TTS
+    dynamic_max_tokens = min(512, max(64, len(text) * 8))
 
     t0 = time.time()
     with torch.no_grad():
@@ -246,7 +239,7 @@ def synthesize_santali_tts(speaker, text, filename="output.wav"):
             do_sample=True,
             temperature=0.7,
             top_p=0.9,
-            repetition_penalty=1.1,
+            repetition_penalty=1.2,
             pad_token_id=tokenizer_tts.pad_token_id or tokenizer_tts.eos_token_id
         )
     
@@ -417,14 +410,17 @@ class LocalAIHandler(BaseHTTPRequestHandler):
             filename = f"santali_{int(time.time())}.wav"
             out_path, gen_time = synthesize_santali_tts(speaker, santali_text, filename)
             
-            self._send_json(200, {
-                "text": santali_text,
-                "speaker": speaker,
-                "audio_url": f"/audio/{filename}",
-                "audio_path": out_path,
-                "generation_time": round(gen_time, 2),
-                "source": "REAL_LOCAL_AI (Quipus TTS)"
-            })
+            if out_path and os.path.exists(out_path):
+                self._send_json(200, {
+                    "text": santali_text,
+                    "speaker": speaker,
+                    "audio_url": f"/audio/{filename}",
+                    "audio_path": out_path,
+                    "generation_time": round(gen_time, 2),
+                    "source": "REAL_LOCAL_AI (Quipus TTS)"
+                })
+            else:
+                self._send_json(500, {"error": "TTS synthesis failed or model unavailable"})
         else:
             self._send_json(404, {"error": "Endpoint not found"})
 

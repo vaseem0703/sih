@@ -37,7 +37,7 @@ class LocalAiBridge {
     return url != null;
   }
 
-  /// Sends real recorded WAV audio file to IndicConformer ASR on local AI server with fast 4s timeout
+  /// Sends real recorded WAV audio file to IndicConformer ASR on local AI server
   static Future<Map<String, dynamic>?> transcribeAudio(File audioFile) async {
     final baseUrl = await getWorkingBaseUrl();
     if (baseUrl == null) return null;
@@ -47,7 +47,7 @@ class LocalAiBridge {
       final request = http.MultipartRequest('POST', uri);
       request.files.add(await http.MultipartFile.fromPath('audio', audioFile.path));
 
-      final streamedResponse = await request.send().timeout(const Duration(seconds: 4));
+      final streamedResponse = await request.send().timeout(const Duration(seconds: 15));
       final response = await http.Response.fromStream(streamedResponse);
 
       if (response.statusCode == 200) {
@@ -74,7 +74,7 @@ class LocalAiBridge {
             headers: {'Content-Type': 'application/json; charset=utf-8'},
             body: jsonEncode({'text': text, 'src': src, 'tgt': tgt}),
           )
-          .timeout(const Duration(seconds: 3));
+          .timeout(const Duration(seconds: 12));
 
       if (response.statusCode == 200) {
         return jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
@@ -99,7 +99,7 @@ class LocalAiBridge {
             headers: {'Content-Type': 'application/json; charset=utf-8'},
             body: jsonEncode({'text': santaliText, 'speaker': speaker}),
           )
-          .timeout(const Duration(seconds: 10));
+          .timeout(const Duration(seconds: 35));
 
       if (response.statusCode == 200) {
         return jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;

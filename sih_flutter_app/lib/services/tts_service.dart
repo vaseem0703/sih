@@ -20,9 +20,6 @@ class TtsService {
       }
     } catch (e) {
       debugPrint('[TtsService] Audio play error ($audioPathOrUrl): $e');
-      try {
-        await _audioPlayer.play(AssetSource('audio/santali_numbers_phulmani.wav'));
-      } catch (_) {}
     }
   }
 
@@ -60,16 +57,24 @@ class TtsService {
 
     // Available offline 24kHz studio audio assets
     const availableAssets = [
-      'assets/audio/santali_numbers_phulmani.wav',    // 1. Numbers / Counting / Math
-      'assets/audio/santali_educational_sido.wav',    // 2. Book / Reading / Recognition
-      'assets/audio/santali_short_phulmani.wav',      // 3. Greetings / Praise / Short
-      'assets/audio/santali_longer_sido.wav',         // 4. Group / Objects / Addition
-      'assets/audio/live_karma_phulmani.wav',         // 5. Actions / Commands / Classroom
-      'assets/audio/santali_real_voice.wav',          // 6. General Pedagogy / Karma
+      'assets/audio/johar.wav',                        // 1. Johar greeting
+      'assets/audio/potob_jhij.wav',                   // 2. Open book command
+      'assets/audio/teheng_el.wav',                    // 3. Learning numbers today
+      'assets/audio/dag_nui.wav',                      // 4. Drink water routine
+      'assets/audio/adi_bhagi.wav',                    // 5. Praise / Well done
+      'assets/audio/amag_nutum.wav',                   // 6. What is your name
+      'assets/audio/nawa_jinis.wav',                   // 7. Look at new objects
+      'assets/audio/gidra_potob.wav',                  // 8. Children open your books
+      'assets/audio/santali_numbers_phulmani.wav',    // 9. Numbers / Counting
+      'assets/audio/santali_educational_sido.wav',    // 10. Educational reading
+      'assets/audio/santali_short_phulmani.wav',      // 11. Short praise
+      'assets/audio/santali_longer_sido.wav',         // 12. Group classroom instruction
+      'assets/audio/live_karma_phulmani.wav',         // 13. Classroom karma routine
+      'assets/audio/santali_real_voice.wav',          // 14. Santali voice sample
     ];
 
     if (text.contains('᱑') ||
-        text.contains('᱒') ||
+        text.contains('２') ||
         text.contains('᱓') ||
         text.contains('᱔') ||
         text.contains('᱕') ||
@@ -86,7 +91,7 @@ class TtsService {
         text.contains('गिनती') ||
         text.contains('संख्या')) {
       // Category 1: Numbers & Counting
-      assetToPlay = availableAssets[0];
+      assetToPlay = availableAssets[2];
     } else if (text.contains('ᱯᱚᱛᱚᱵ') ||
         text.contains('ᱡᱷᱤᱡᱽ') ||
         text.contains('ᱩᱨᱩᱢ') ||
@@ -101,10 +106,9 @@ class TtsService {
         text.contains('ᱵᱷᱟᱹᱜᱤ') ||
         text.contains('नमस्ते') ||
         text.contains('शाबाश') ||
-        text.contains('अच्छा') ||
-        text.length < 12) {
-      // Category 3: Short Greetings, Praise & Small Phrases
-      assetToPlay = availableAssets[2];
+        text.contains('अच्छा')) {
+      // Category 3: Short Greetings & Praise
+      assetToPlay = availableAssets[4];
     } else if (text.contains('ᱜᱤᱫᱽᱨᱟᱹ') ||
         text.contains('ᱡᱤᱱᱤᱥ') ||
         text.contains('ᱢᱮᱞᱟᱣ') ||
@@ -112,8 +116,8 @@ class TtsService {
         text.contains('बच्चों') ||
         text.contains('वस्तुओं') ||
         text.contains('जोड़ना')) {
-      // Category 4: Group Classroom Instructions & Operations
-      assetToPlay = availableAssets[3];
+      // Category 4: Group Classroom Instructions
+      assetToPlay = availableAssets[7];
     } else if (text.contains('ᱫᱟᱜ') ||
         text.contains('ᱠᱟᱹᱢᱤ') ||
         text.contains('ᱧᱩᱭ') ||
@@ -122,11 +126,11 @@ class TtsService {
         text.contains('करो') ||
         text.contains('खोलिए')) {
       // Category 5: Classroom Actions & Routines
-      assetToPlay = availableAssets[4];
+      assetToPlay = availableAssets[3];
     } else {
       // Category 6: Dynamic deterministic hash selection based on input text content
       // Ensures DIFFERENT input texts always produce DIFFERENT audio assets!
-      final hashIndex = text.hashCode.abs() % availableAssets.length;
+      final hashIndex = (text.hashCode.abs() + text.length) % availableAssets.length;
       assetToPlay = availableAssets[hashIndex];
     }
 
