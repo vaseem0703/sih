@@ -3,14 +3,17 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
 import 'audio_recorder_service.dart';
 import 'local_ai_bridge.dart';
+import 'offline_asr_service.dart';
 
 class SpeechService {
   final AudioRecorderService _audioRecorder = AudioRecorderService();
+  final OfflineAsrService _offlineAsr = OfflineAsrService();
   final stt.SpeechToText _speech = stt.SpeechToText();
   bool _isInitialized = false;
   bool _isRecording = false;
 
   bool get isListening => _isRecording || _speech.isListening;
+  bool get isOfflineAsrReady => _offlineAsr.isReady;
 
   Future<bool> requestMicPermission() async {
     try {
@@ -32,17 +35,20 @@ class SpeechService {
     final hasPerm = await requestMicPermission();
     if (!hasPerm) return false;
 
+    // 1. Initialize local on-device Sherpa-ONNX model in background
+    _offlineAsr.initialize();
+
+    // 2. Initialize optional on-device live speech recognizer
     try {
-      _isInitialized = await _speech.initialize(
+      await _speech.initialize(
         onError: (_) {},
         onStatus: (_) {},
         debugLogging: false,
       );
-      return true;
-    } catch (_) {
-      _isInitialized = true;
-      return true;
-    }
+    } catch (_) {}
+
+    _isInitialized = true;
+    return true;
   }
 
   /// Starts recording real audio from the physical phone microphone and streams recognized speech
@@ -57,13 +63,13 @@ class SpeechService {
       return false;
     }
 
-    onStatusUpdate?.call("Recording...");
+    onStatusUpdate?.call("Listening...");
 
     // Start physical audio recording to WAV
     await _audioRecorder.startRecording();
     _isRecording = true;
 
-    // Start on-device speech recognizer concurrently for instant live word feedback
+    // Start on-device speech recognizer concurrently for optional live preview
     try {
       if (await initialize()) {
         await _speech.listen(
@@ -84,7 +90,7 @@ class SpeechService {
     return true;
   }
 
-  /// Stops physical microphone recording and transcribes instantly
+  /// Stops physical microphone recording and transcribes locally on-device without internet
   Future<String?> stopListeningAndTranscribe({
     String? currentRecognizedText,
     Function(String status)? onStatusUpdate,
@@ -99,7 +105,7 @@ class SpeechService {
 
     final File? audioFile = await _audioRecorder.stopRecording();
 
-    // If on-device recognizer already captured words, return immediately with zero delay
+    // 1. If live online recognizer already captured words, return immediately
     if (currentRecognizedText != null && currentRecognizedText.trim().isNotEmpty) {
       return currentRecognizedText.trim();
     }
@@ -113,10 +119,20 @@ class SpeechService {
       return currentRecognizedText;
     }
 
-    // Try Local AI IndicConformer with 3s fast timeout
+    onStatusUpdate?.call("Processing speech locally...");
+
+    // 2. PRIMARY OFFLINE PATH: On-device Sherpa-ONNX neural ASR
+    try {
+      final localText = await _offlineAsr.transcribeWavFile(audioFile);
+      if (localText != null && localText.trim().isNotEmpty) {
+        return localText.trim();
+      }
+    } catch (_) {}
+
+    // 3. SECONDARY DEVELOPMENT PATH: Local AI server bridge over Wi-Fi/localhost
     try {
       final asrResult = await LocalAiBridge.transcribeAudio(audioFile)
-          .timeout(const Duration(seconds: 3));
+          .timeout(const Duration(seconds: 2));
       if (asrResult != null && asrResult.containsKey('text')) {
         final transcribedText = asrResult['text'].toString().trim();
         if (transcribedText.isNotEmpty) {
@@ -124,6 +140,10 @@ class SpeechService {
         }
       }
     } catch (_) {}
+
+    if (_offlineAsr.initError != null) {
+      onStatusUpdate?.call("Offline Hindi speech model is not installed.");
+    }
 
     return currentRecognizedText;
   }
