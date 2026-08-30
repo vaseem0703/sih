@@ -2,13 +2,17 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'audio_recorder_service.dart';
+import 'offline_asr_service.dart';
 import 'on_device_asr_service.dart';
 
 class SpeechService {
   final AudioRecorderService _audioRecorder = AudioRecorderService();
+  final OfflineAsrService _offlineAsr = OfflineAsrService();
+  final OnDeviceAsrService _onDeviceAsr = OnDeviceAsrService();
   bool _isWavRecording = false;
 
   bool get isListening => _isWavRecording;
+  bool get isOfflineAsrReady => _offlineAsr.isReady || _onDeviceAsr.isReady;
 
   // ─────────────────────────────────────────────────────
   // Permission
@@ -41,6 +45,9 @@ class SpeechService {
       onStatusUpdate?.call('Microphone permission denied.');
       return false;
     }
+
+    // Pre-initialize offline ASR engines in background
+    _offlineAsr.initialize();
 
     try {
       final recPath = await _audioRecorder.startRecording();
@@ -82,14 +89,11 @@ class SpeechService {
         await audioFile.length() > 0) {
       onStatusUpdate?.call('Transcribing audio with Hindi ASR...');
 
-      // 1. Try On-Device Sherpa-ONNX Hindi ASR first (100% Offline, No PC / No Internet required)
-      final onDeviceService = OnDeviceAsrService();
-      if (onDeviceService.isReady) {
+      // 1. Try On-Device Sherpa-ONNX IndicConformer ASR (if installed and ready)
+      if (_onDeviceAsr.isReady) {
         try {
-          debugPrint('[SpeechService] Using On-Device Sherpa-ONNX ASR...');
-          final onDeviceText = await onDeviceService.transcribeWavFile(
-            audioFile,
-          );
+          debugPrint('[SpeechService] Using On-Device IndicConformer Sherpa-ONNX ASR...');
+          final onDeviceText = await _onDeviceAsr.transcribeWavFile(audioFile);
           if (onDeviceText != null && onDeviceText.isNotEmpty) {
             debugPrint(
               '[ASR DEBUG] ON-DEVICE SHERPA ASR RESULT = "$onDeviceText"',
@@ -98,12 +102,32 @@ class SpeechService {
           }
         } catch (e, stackTrace) {
           debugPrint(
-            '[SpeechService] On-Device Sherpa ASR error: $e\n$stackTrace',
+            '[SpeechService] On-Device IndicConformer ASR error: $e\n$stackTrace',
           );
         }
       }
 
-      onStatusUpdate?.call('Offline ASR unavailable');
+      // 2. PRIMARY OFFLINE PATH: Bundled Whisper INT8 Sherpa-ONNX ASR (100% Offline)
+      try {
+        debugPrint('[SpeechService] Using Bundled Sherpa-ONNX Whisper INT8 ASR...');
+        final localText = await _offlineAsr.transcribeWavFile(audioFile);
+        if (localText != null && localText.trim().isNotEmpty) {
+          debugPrint(
+            '[ASR DEBUG] BUNDLED SHERPA WHISPER RESULT = "${localText.trim()}"',
+          );
+          return localText.trim();
+        }
+      } catch (e, stackTrace) {
+        debugPrint(
+          '[SpeechService] Bundled Sherpa Whisper ASR error: $e\n$stackTrace',
+        );
+      }
+
+      if (_offlineAsr.initError != null && !_onDeviceAsr.isReady) {
+        onStatusUpdate?.call('Offline Hindi speech model is not installed.');
+      } else {
+        onStatusUpdate?.call('Offline ASR unavailable');
+      }
       return null;
     }
 
@@ -120,5 +144,6 @@ class SpeechService {
 
   Future<void> warmUp() async {
     await requestMicPermission();
+    _offlineAsr.initialize();
   }
 }

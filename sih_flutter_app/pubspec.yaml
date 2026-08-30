@@ -53,6 +53,7 @@ flutter:
   assets:
     - assets/audio/
     - assets/images/
+    - assets/models/sherpa-onnx-whisper-tiny/
 
 
   # To add assets to your application, add an assets section, like this:
