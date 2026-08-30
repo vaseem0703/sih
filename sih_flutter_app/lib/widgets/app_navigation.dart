@@ -105,7 +105,9 @@ class AppBottomNavBar extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 11,
                   fontWeight: isSelected ? FontWeight.w800 : FontWeight.w500,
-                  color: isSelected ? AppColors.purple : AppColors.textSecondary,
+                  color: isSelected
+                      ? AppColors.purple
+                      : AppColors.textSecondary,
                 ),
               ),
             ),

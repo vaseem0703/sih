@@ -103,10 +103,8 @@ class _WorksheetsScreenState extends State<WorksheetsScreen> {
     );
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (context) => TeachingPackageScreen(
-          lesson: lesson,
-          ttsService: _ttsService,
-        ),
+        builder: (context) =>
+            TeachingPackageScreen(lesson: lesson, ttsService: _ttsService),
       ),
     );
   }
@@ -447,10 +445,8 @@ class _WorksheetsScreenState extends State<WorksheetsScreen> {
             return l.lessonId == _activeFilterLessonId;
           }).toList()
         : (_activeFilterTopic != null
-            ? allTopics
-                .where((t) => t.titleEn == _activeFilterTopic)
-                .toList()
-            : allTopics);
+              ? allTopics.where((t) => t.titleEn == _activeFilterTopic).toList()
+              : allTopics);
 
     if (displayedTopics.isEmpty) {
       return Container(
@@ -531,7 +527,10 @@ class _WorksheetsScreenState extends State<WorksheetsScreen> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 3,
+                    ),
                     decoration: BoxDecoration(
                       color: AppColors.purpleLight,
                       borderRadius: BorderRadius.circular(6),
@@ -623,7 +622,10 @@ class _WorksheetsScreenState extends State<WorksheetsScreen> {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.navy,
                     foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+                    padding: const EdgeInsets.symmetric(
+                      vertical: 12,
+                      horizontal: 8,
+                    ),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(10),
                     ),
@@ -641,7 +643,10 @@ class _WorksheetsScreenState extends State<WorksheetsScreen> {
                     fit: BoxFit.scaleDown,
                     child: Text(
                       'Preview Worksheet',
-                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
                 ),
@@ -653,7 +658,10 @@ class _WorksheetsScreenState extends State<WorksheetsScreen> {
                   style: OutlinedButton.styleFrom(
                     foregroundColor: AppColors.purple,
                     side: const BorderSide(color: AppColors.purple),
-                    padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 6),
+                    padding: const EdgeInsets.symmetric(
+                      vertical: 12,
+                      horizontal: 6,
+                    ),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(10),
                     ),
@@ -668,7 +676,10 @@ class _WorksheetsScreenState extends State<WorksheetsScreen> {
                     fit: BoxFit.scaleDown,
                     child: Text(
                       'View Lesson',
-                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
                 ),
@@ -705,8 +716,8 @@ class _WorksheetsScreenState extends State<WorksheetsScreen> {
             return l.lessonId == _activeFilterLessonId;
           })
         : (_activeFilterTopic != null
-            ? allTopics.indexWhere((t) => t.titleEn == _activeFilterTopic)
-            : _selectedFlashcardTopicIndex);
+              ? allTopics.indexWhere((t) => t.titleEn == _activeFilterTopic)
+              : _selectedFlashcardTopicIndex);
 
     final validIndex = (activeIndex >= 0 && activeIndex < allTopics.length)
         ? activeIndex
@@ -804,10 +815,7 @@ class _WorksheetsScreenState extends State<WorksheetsScreen> {
                 setState(() => _currentFlashcardIndex = idx),
             itemBuilder: (context, index) {
               final item = vocabList[index];
-              return _buildCarouselCard(
-                item,
-                index == _currentFlashcardIndex,
-              );
+              return _buildCarouselCard(item, index == _currentFlashcardIndex);
             },
           ),
         ),
@@ -822,9 +830,9 @@ class _WorksheetsScreenState extends State<WorksheetsScreen> {
               icon: const Icon(Icons.chevron_left),
               onPressed: _currentFlashcardIndex > 0
                   ? () => _flashcardController.previousPage(
-                        duration: const Duration(milliseconds: 250),
-                        curve: Curves.easeInOut,
-                      )
+                      duration: const Duration(milliseconds: 250),
+                      curve: Curves.easeInOut,
+                    )
                   : null,
             ),
             Row(
@@ -847,9 +855,9 @@ class _WorksheetsScreenState extends State<WorksheetsScreen> {
               icon: const Icon(Icons.chevron_right),
               onPressed: _currentFlashcardIndex < vocabList.length - 1
                   ? () => _flashcardController.nextPage(
-                        duration: const Duration(milliseconds: 250),
-                        curve: Curves.easeInOut,
-                      )
+                      duration: const Duration(milliseconds: 250),
+                      curve: Curves.easeInOut,
+                    )
                   : null,
             ),
           ],

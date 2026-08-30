@@ -18,7 +18,8 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
-  late final SettingsService _settingsService = widget.settingsService ?? SettingsService();
+  late final SettingsService _settingsService =
+      widget.settingsService ?? SettingsService();
   AppSettings _settings = const AppSettings();
   bool _isLoading = true;
 

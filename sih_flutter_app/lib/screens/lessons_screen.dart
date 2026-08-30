@@ -10,11 +10,7 @@ class LessonsScreen extends StatefulWidget {
   final Function(int grade, String subject, int index)? onStartLesson;
   final TtsService? ttsService;
 
-  const LessonsScreen({
-    super.key,
-    this.onStartLesson,
-    this.ttsService,
-  });
+  const LessonsScreen({super.key, this.onStartLesson, this.ttsService});
 
   @override
   State<LessonsScreen> createState() => _LessonsScreenState();

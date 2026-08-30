@@ -215,7 +215,8 @@ class CurriculumGeneratorService {
     if (grade == 1 && subject.toLowerCase() == 'mathematics') {
       if (topic.titleEn.contains('Counting') || compId == 'FLN-M1-01') {
         return _buildG1CountingLesson(grade, subject, topic, targetLanguage);
-      } else if (topic.titleEn.contains('Recognition') || compId == 'FLN-M1-02') {
+      } else if (topic.titleEn.contains('Recognition') ||
+          compId == 'FLN-M1-02') {
         return _buildG1RecognitionLesson(grade, subject, topic, targetLanguage);
       } else if (topic.titleEn.contains('Matching') || compId == 'FLN-M1-03') {
         return _buildG1MatchingLesson(grade, subject, topic, targetLanguage);
@@ -230,7 +231,8 @@ class CurriculumGeneratorService {
         return _buildG2OrderingLesson(grade, subject, topic, targetLanguage);
       } else if (topic.titleEn.contains('Addition') || compId == 'FLN-M2-02') {
         return _buildG2AdditionLesson(grade, subject, topic, targetLanguage);
-      } else if (topic.titleEn.contains('Comparison') || compId == 'FLN-M2-03') {
+      } else if (topic.titleEn.contains('Comparison') ||
+          compId == 'FLN-M2-03') {
         return _buildG2ComparisonLesson(grade, subject, topic, targetLanguage);
       }
     }
@@ -239,12 +241,19 @@ class CurriculumGeneratorService {
     // GRADE 3 MATHEMATICS ROUTING
     // -------------------------------------------------------------------------
     if (grade == 3 && subject.toLowerCase() == 'mathematics') {
-      if (topic.titleEn.contains('Addition and Subtraction') || compId == 'FLN-M3-01') {
+      if (topic.titleEn.contains('Addition and Subtraction') ||
+          compId == 'FLN-M3-01') {
         return _buildG3AddSubLesson(grade, subject, topic, targetLanguage);
       } else if (topic.titleEn.contains('Patterns') || compId == 'FLN-M3-02') {
         return _buildG3PatternsLesson(grade, subject, topic, targetLanguage);
-      } else if (topic.titleEn.contains('Word Problems') || compId == 'FLN-M3-03') {
-        return _buildG3WordProblemsLesson(grade, subject, topic, targetLanguage);
+      } else if (topic.titleEn.contains('Word Problems') ||
+          compId == 'FLN-M3-03') {
+        return _buildG3WordProblemsLesson(
+          grade,
+          subject,
+          topic,
+          targetLanguage,
+        );
       }
     }
 
@@ -431,7 +440,8 @@ class CurriculumGeneratorService {
           stepNumber: 1,
           phaseName: 'Concrete Modeling (मूर्त वस्तुओं से गिनती)',
           dialogueHi: 'बच्चों, देखिए मेरी मेज पर कितने कंकड़ हैं! एक, दो, तीन!',
-          dialogueSat: 'ᱜᱤᱫᱽᱨᱟᱹ ᱠᱚ, ᱧᱮᱞ ᱯᱮ ᱤᱧᱟᱜ ᱢᱮᱡᱽ ᱪᱮᱛᱟᱱ ᱨᱮ ᱛᱤᱱᱟᱹᱜ ᱫᱷᱤᱨᱤ ᱢᱮᱱᱟᱜᱼᱟ! ᱢᱤᱫ, ᱵᱟᱨ, ᱯᱮ!',
+          dialogueSat:
+              'ᱜᱤᱫᱽᱨᱟᱹ ᱠᱚ, ᱧᱮᱞ ᱯᱮ ᱤᱧᱟᱜ ᱢᱮᱡᱽ ᱪᱮᱛᱟᱱ ᱨᱮ ᱛᱤᱱᱟᱹᱜ ᱫᱷᱤᱨᱤ ᱢᱮᱱᱟᱜᱼᱟ! ᱢᱤᱫ, ᱵᱟᱨ, ᱯᱮ!',
           teacherAction:
               'Point to each pebble with your index finger as you count aloud.',
           audioAsset: 'assets/audio/santali_numbers_phulmani.wav',
@@ -439,8 +449,10 @@ class CurriculumGeneratorService {
         TeacherScriptStep(
           stepNumber: 2,
           phaseName: 'Choral Touch Counting (साथ में छूकर गिनना)',
-          dialogueHi: 'सभी बच्चे अपनी उंगलियाँ उठाइए और मेरे साथ गिनिए: 1, 2, 3, 4, 5!',
-          dialogueSat: 'ᱡᱚᱛᱚ ᱜᱤᱫᱽᱨᱟᱹ ᱛᱤ ᱠᱟᱹᱴᱩᱵ ᱛᱩᱞ ᱯᱮ ᱟᱨ ᱤᱧ ᱥᱟᱶ ᱞᱮᱠᱷᱟᱭ ᱯᱮ: ᱑, ᱒, ᱓, ᱔, ᱕!',
+          dialogueHi:
+              'सभी बच्चे अपनी उंगलियाँ उठाइए और मेरे साथ गिनिए: 1, 2, 3, 4, 5!',
+          dialogueSat:
+              'ᱡᱚᱛᱚ ᱜᱤᱫᱽᱨᱟᱹ ᱛᱤ ᱠᱟᱹᱴᱩᱵ ᱛᱩᱞ ᱯᱮ ᱟᱨ ᱤᱧ ᱥᱟᱶ ᱞᱮᱠᱷᱟᱭ ᱯᱮ: ᱑, ᱒, ᱓, ᱔, ᱕!',
           teacherAction: 'Raise hand and show finger counts sequentially.',
           audioAsset: 'assets/audio/santali_short_phulmani.wav',
         ),
@@ -456,7 +468,8 @@ class CurriculumGeneratorService {
           studentInstruction:
               'Line up your seeds and count them aloud in Santali and Hindi.',
           contentHi: 'छात्र कंकड़ों को एक पंक्ति में रखकर 1 से 10 तक गिनेंगे।',
-          contentSat: 'ᱯᱟᱹᱴᱷᱩᱣᱟᱹ ᱠᱚ ᱫᱷᱤᱨᱤ ᱞᱟᱭᱤᱱ ᱨᱮ ᱫᱚᱦᱚ ᱠᱟᱛᱮ ᱑ ᱠᱷᱚᱱ ᱑᱐ ᱦᱟᱹᱵᱤᱡ ᱠᱚ ᱮᱞᱟ ᱾',
+          contentSat:
+              'ᱯᱟᱹᱴᱷᱩᱣᱟᱹ ᱠᱚ ᱫᱷᱤᱨᱤ ᱞᱟᱭᱤᱱ ᱨᱮ ᱫᱚᱦᱚ ᱠᱟᱛᱮ ᱑ ᱠᱷᱚᱱ ᱑᱐ ᱦᱟᱹᱵᱤᱡ ᱠᱚ ᱮᱞᱟ ᱾',
           materialsNeeded: ['10 pebbles or seeds per pair', 'Counting mat'],
           durationMinutes: 15,
         ),
@@ -528,8 +541,10 @@ class CurriculumGeneratorService {
         TeacherScriptStep(
           stepNumber: 1,
           phaseName: 'Symbol Introduction (अंक प्रतीक प्रदर्शन)',
-          dialogueHi: 'यह देखिए, यह संख्या "5" है! संथाली में इसे "ᱢᱚᱬᱮ" (5) लिखते हैं।',
-          dialogueSat: 'ᱱᱚᱣᱟ ᱧᱮᱞ ᱯᱮ, ᱱᱚᱣᱟ ᱫᱚ ᱮᱞ "᱕" ᱠᱟᱱᱟ! ᱥᱟᱱᱛᱟᱲᱤ ᱛᱮ ᱱᱚᱣᱟ ᱫᱚ "ᱢᱚᱬᱮ" (᱕) ᱠᱚ ᱚᱞᱟ ᱾',
+          dialogueHi:
+              'यह देखिए, यह संख्या "5" है! संथाली में इसे "ᱢᱚᱬᱮ" (5) लिखते हैं।',
+          dialogueSat:
+              'ᱱᱚᱣᱟ ᱧᱮᱞ ᱯᱮ, ᱱᱚᱣᱟ ᱫᱚ ᱮᱞ "᱕" ᱠᱟᱱᱟ! ᱥᱟᱱᱛᱟᱲᱤ ᱛᱮ ᱱᱚᱣᱟ ᱫᱚ "ᱢᱚᱬᱮ" (᱕) ᱠᱚ ᱚᱞᱟ ᱾',
           teacherAction:
               'Display large flashcard showing Hindi numeral 5 and Ol Chiki numeral ᱕ side by side.',
           audioAsset: 'assets/audio/santali_educational_sido.wav',
@@ -538,7 +553,8 @@ class CurriculumGeneratorService {
           stepNumber: 2,
           phaseName: 'Sound-Symbol Association (ध्वनि और अंक मिलान)',
           dialogueHi: 'जब मैं कार्ड दिखाऊँ, तो जोर से संख्या का नाम बोलिए!',
-          dialogueSat: 'ᱡᱚᱠᱷᱚᱱ ᱤᱧ ᱠᱟᱨᱰ ᱩᱫᱩᱜᱟᱹᱧ, ᱩᱱ ᱡᱚᱦᱚᱜ ᱮᱞ ᱧᱩᱛᱩᱢ ᱡᱚᱨ ᱛᱮ ᱨᱚᱲ ᱯᱮ!',
+          dialogueSat:
+              'ᱡᱚᱠᱷᱚᱱ ᱤᱧ ᱠᱟᱨᱰ ᱩᱫᱩᱜᱟᱹᱧ, ᱩᱱ ᱡᱚᱦᱚᱜ ᱮᱞ ᱧᱩᱛᱩᱢ ᱡᱚᱨ ᱛᱮ ᱨᱚᱲ ᱯᱮ!',
           teacherAction:
               'Hold up cards in random order and prompt whole-class naming.',
         ),
@@ -555,7 +571,9 @@ class CurriculumGeneratorService {
               'Look at the card and speak the number in Santali Ol Chiki and Hindi.',
           contentHi: 'अंक देखकर तुरंत संथाली और हिंदी में संख्या का नाम बोलना।',
           contentSat: 'ᱮᱞ ᱠᱟᱨᱰ ᱧᱮᱞ ᱠᱟᱛᱮ ᱥᱟᱱᱛᱟᱲᱤ ᱟᱨ ᱦᱤᱱᱫᱤ ᱛᱮ ᱞᱟᱹᱭ ᱯᱮ ᱾',
-          materialsNeeded: ['Flashcards 1 to 10 with Hindi & Ol Chiki numerals'],
+          materialsNeeded: [
+            'Flashcards 1 to 10 with Hindi & Ol Chiki numerals',
+          ],
           durationMinutes: 15,
         ),
       ],
@@ -625,8 +643,10 @@ class CurriculumGeneratorService {
         TeacherScriptStep(
           stepNumber: 1,
           phaseName: 'Quantity-Numeral Pairing (मात्रा और अंक का मिलान)',
-          dialogueHi: 'यहाँ 4 फूल हैं! अब कार्ड में से "4" (४ / ᱔) ढूँढकर इसके पास रखिए।',
-          dialogueSat: 'ᱱᱚᱸᱰᱮ ᱔ ᱵᱟᱦᱟ ᱢᱮᱱᱟᱜᱼᱟ! ᱱᱤᱛᱚᱜ ᱠᱟᱨᱰ ᱠᱷᱚᱱ "᱔" (ᱯᱩᱱ) ᱯᱟᱱᱛᱮ ᱠᱟᱛᱮ ᱥᱩᱨ ᱨᱮ ᱫᱚᱦᱚᱭ ᱯᱮ ᱾',
+          dialogueHi:
+              'यहाँ 4 फूल हैं! अब कार्ड में से "4" (४ / ᱔) ढूँढकर इसके पास रखिए।',
+          dialogueSat:
+              'ᱱᱚᱸᱰᱮ ᱔ ᱵᱟᱦᱟ ᱢᱮᱱᱟᱜᱼᱟ! ᱱᱤᱛᱚᱜ ᱠᱟᱨᱰ ᱠᱷᱚᱱ "᱔" (ᱯᱩᱱ) ᱯᱟᱱᱛᱮ ᱠᱟᱛᱮ ᱥᱩᱨ ᱨᱮ ᱫᱚᱦᱚᱭ ᱯᱮ ᱾',
           teacherAction:
               'Place 4 cut-out flowers on the floor and pair with numeral card 4.',
           audioAsset: 'assets/audio/santali_longer_sido.wav',
@@ -642,9 +662,15 @@ class CurriculumGeneratorService {
               'Place baskets with varying quantities of mango cut-outs. Children place matching number card in each basket.',
           studentInstruction:
               'Count the items in your basket and place the correct number card inside.',
-          contentHi: 'टोकरी में रखी वस्तुओं को गिनकर सही संख्या कार्ड टोकरी में रखना।',
-          contentSat: 'ᱴᱩᱠᱨᱤ ᱨᱮᱱᱟᱜ ᱡᱤᱱᱤᱥ ᱮᱞ ᱠᱟᱛᱮ ᱴᱷᱤᱠ ᱮᱞ ᱠᱟᱨᱰ ᱵᱷᱤᱛᱨᱤ ᱨᱮ ᱫᱚᱦᱚᱭ ᱯᱮ ᱾',
-          materialsNeeded: ['3 plastic baskets', 'Cut-out mangoes/apples', 'Number cards 1–10'],
+          contentHi:
+              'टोकरी में रखी वस्तुओं को गिनकर सही संख्या कार्ड टोकरी में रखना।',
+          contentSat:
+              'ᱴᱩᱠᱨᱤ ᱨᱮᱱᱟᱜ ᱡᱤᱱᱤᱥ ᱮᱞ ᱠᱟᱛᱮ ᱴᱷᱤᱠ ᱮᱞ ᱠᱟᱨᱰ ᱵᱷᱤᱛᱨᱤ ᱨᱮ ᱫᱚᱦᱚᱭ ᱯᱮ ᱾',
+          materialsNeeded: [
+            '3 plastic baskets',
+            'Cut-out mangoes/apples',
+            'Number cards 1–10',
+          ],
           durationMinutes: 15,
         ),
       ],
@@ -652,7 +678,8 @@ class CurriculumGeneratorService {
         GeneratedAssessmentQuestion(
           id: 'G1-MTC-01',
           questionEn: 'Which group of dots matches the number 4 (४ / ᱔)?',
-          questionHi: 'संख्या 4 (४ / ᱔) के साथ कौन सा बिंदुओं का समूह मिलता है?',
+          questionHi:
+              'संख्या 4 (४ / ᱔) के साथ कौन सा बिंदुओं का समूह मिलता है?',
           questionSat: 'ᱮᱞ ᱔ (ᱯᱩᱱ) ᱥᱟᱶ ᱚᱠᱟ ᱴᱩᱰᱟᱹᱜ ᱜᱟᱫᱮᱞ ᱢᱮᱞᱟᱜᱼᱟ?',
           questionType: 'Quantity Matching',
           optionsHi: ['● ● ● (3)', '● ● ● ● (4)', '● ● ● ● ● (5)'],
@@ -711,8 +738,10 @@ class CurriculumGeneratorService {
         TeacherScriptStep(
           stepNumber: 1,
           phaseName: 'Sequence Line Concept (संख्या रेखा और क्रम)',
-          dialogueHi: 'बच्चों, संख्याएँ हमेशा एक निश्चित क्रम में चलती हैं: 1, 2, 3, 4, 5!',
-          dialogueSat: 'ᱜᱤᱫᱽᱨᱟᱹ ᱠᱚ, ᱮᱞ ᱫᱚ ᱡᱟᱣᱜᱮ ᱥᱟᱡᱟᱣ ᱛᱮ ᱪᱟᱞᱟᱜᱼᱟ: ᱑, ᱒, ᱓, ᱔, ᱕!',
+          dialogueHi:
+              'बच्चों, संख्याएँ हमेशा एक निश्चित क्रम में चलती हैं: 1, 2, 3, 4, 5!',
+          dialogueSat:
+              'ᱜᱤᱫᱽᱨᱟᱹ ᱠᱚ, ᱮᱞ ᱫᱚ ᱡᱟᱣᱜᱮ ᱥᱟᱡᱟᱣ ᱛᱮ ᱪᱟᱞᱟᱜᱼᱟ: ᱑, ᱒, ᱓, ᱔, ᱕!',
           teacherAction:
               'Draw a number line 1 to 10 on the chalkboard with chalk footprints.',
           audioAsset: 'assets/audio/santali_numbers_phulmani.wav',
@@ -731,13 +760,16 @@ class CurriculumGeneratorService {
           activityNumber: 1,
           activityNameHi: 'संख्या रेलगाड़ी खेल (Number Train)',
           activityNameSat: 'ᱮᱞ ᱨᱮᱞᱜᱟᱹᱰᱤ ᱠᱷᱮᱞᱚᱸᱰ',
-          objective: 'Order shuffled number cards from 1 to 10 in ascending order.',
+          objective:
+              'Order shuffled number cards from 1 to 10 in ascending order.',
           teacherInstruction:
               'Hand 10 children mixed cards. Ask them to stand in the correct line from 1 to 10.',
           studentInstruction:
               'Look at your number and arrange yourself in the train order quickly.',
-          contentHi: 'छात्र कार्ड लेकर सही क्रम 1 से 10 में खड़े होकर रेलगाड़ी बनाएँगे।',
-          contentSat: 'ᱯᱟᱹᱴᱷᱩᱣᱟᱹ ᱠᱚ ᱠᱟᱨᱰ ᱥᱟᱵ ᱠᱟᱛᱮ ᱑ ᱠᱷᱚᱱ ᱑᱐ ᱞᱟᱭᱤᱱ ᱨᱮ ᱛᱤᱸᱜᱩ ᱠᱟᱛᱮ ᱨᱮᱞᱜᱟᱹᱰᱤ ᱠᱚ ᱵᱮᱱᱟᱣᱟ ᱾',
+          contentHi:
+              'छात्र कार्ड लेकर सही क्रम 1 से 10 में खड़े होकर रेलगाड़ी बनाएँगे।',
+          contentSat:
+              'ᱯᱟᱹᱴᱷᱩᱣᱟᱹ ᱠᱚ ᱠᱟᱨᱰ ᱥᱟᱵ ᱠᱟᱛᱮ ᱑ ᱠᱷᱚᱱ ᱑᱐ ᱞᱟᱭᱤᱱ ᱨᱮ ᱛᱤᱸᱜᱩ ᱠᱟᱛᱮ ᱨᱮᱞᱜᱟᱹᱰᱤ ᱠᱚ ᱵᱮᱱᱟᱣᱟ ᱾',
           materialsNeeded: ['Large number cards 1–10 for chest tags'],
           durationMinutes: 20,
         ),
@@ -745,7 +777,8 @@ class CurriculumGeneratorService {
       assessmentQuestions: const [
         GeneratedAssessmentQuestion(
           id: 'G2-ORD-01',
-          questionEn: 'Which number is missing in the sequence: 4, 5, __, 7, 8?',
+          questionEn:
+              'Which number is missing in the sequence: 4, 5, __, 7, 8?',
           questionHi: 'क्रम में छूटी हुई संख्या कौन सी है: 4, 5, __, 7, 8?',
           questionSat: 'ᱱᱚᱣᱟ ᱞᱟᱭᱤᱱ ᱨᱮ ᱚᱠᱟ ᱮᱞ ᱵᱟᱹᱜᱤ ᱮᱱᱟ: ᱔, ᱕, __, ᱗, ᱘?',
           questionType: 'Sequence Completion',
@@ -808,8 +841,10 @@ class CurriculumGeneratorService {
         TeacherScriptStep(
           stepNumber: 1,
           phaseName: 'Combining Sets (दो समूहों को मिलाना)',
-          dialogueHi: 'मेरे बाएँ हाथ में 3 कंकड़ हैं और दाएँ हाथ में 2 कंकड़। जब दोनों को मिलाया, तो कुल कितने हुए? 5!',
-          dialogueSat: 'ᱤᱧᱟᱜ ᱞᱮᱸᱜᱟ ᱛᱤ ᱨᱮ ᱓ ᱫᱷᱤᱨᱤ ᱟᱨ ᱡᱚᱡᱚᱢ ᱛᱤ ᱨᱮ ᱒ ᱫᱷᱤᱨᱤ ᱾ ᱢᱮᱥᱟ ᱠᱟᱛᱮ ᱛᱤᱱᱟᱹᱜ ᱦᱩᱭ ᱮᱱᱟ? ᱕ (ᱢᱚᱬᱮ)!',
+          dialogueHi:
+              'मेरे बाएँ हाथ में 3 कंकड़ हैं और दाएँ हाथ में 2 कंकड़। जब दोनों को मिलाया, तो कुल कितने हुए? 5!',
+          dialogueSat:
+              'ᱤᱧᱟᱜ ᱞᱮᱸᱜᱟ ᱛᱤ ᱨᱮ ᱓ ᱫᱷᱤᱨᱤ ᱟᱨ ᱡᱚᱡᱚᱢ ᱛᱤ ᱨᱮ ᱒ ᱫᱷᱤᱨᱤ ᱾ ᱢᱮᱥᱟ ᱠᱟᱛᱮ ᱛᱤᱱᱟᱹᱜ ᱦᱩᱭ ᱮᱱᱟ? ᱕ (ᱢᱚᱬᱮ)!',
           teacherAction:
               'Hold pebbles in both open hands, bring hands together, and count total.',
           audioAsset: 'assets/audio/santali_educational_sido.wav',
@@ -817,9 +852,12 @@ class CurriculumGeneratorService {
         TeacherScriptStep(
           stepNumber: 2,
           phaseName: 'Symbolic Addition Representation (जोड़ चिन्ह "+" की समझ)',
-          dialogueHi: 'हम इसे गणित में लिखते हैं: 3 + 2 = 5। "+" का मतलब है मिलाना।',
-          dialogueSat: 'ᱟᱵᱚ ᱦᱤᱥᱟᱹᱵᱽ ᱛᱮ ᱵᱚᱱ ᱚᱞᱟ: ᱓ + ᱒ = ᱕ ᱾ "+" ᱨᱮᱱᱟᱜ ᱢᱮᱱᱮᱛ ᱫᱚ ᱢᱮᱥᱟ ᱾',
-          teacherAction: 'Write "3 + 2 = 5" on the blackboard in both Hindi and Ol Chiki numerals.',
+          dialogueHi:
+              'हम इसे गणित में लिखते हैं: 3 + 2 = 5। "+" का मतलब है मिलाना।',
+          dialogueSat:
+              'ᱟᱵᱚ ᱦᱤᱥᱟᱹᱵᱽ ᱛᱮ ᱵᱚᱱ ᱚᱞᱟ: ᱓ + ᱒ = ᱕ ᱾ "+" ᱨᱮᱱᱟᱜ ᱢᱮᱱᱮᱛ ᱫᱚ ᱢᱮᱥᱟ ᱾',
+          teacherAction:
+              'Write "3 + 2 = 5" on the blackboard in both Hindi and Ol Chiki numerals.',
         ),
       ],
       activities: const [
@@ -827,14 +865,21 @@ class CurriculumGeneratorService {
           activityNumber: 1,
           activityNameHi: 'दो कटोरी जोड़ खेल (Two-Bowl Addition)',
           activityNameSat: 'ᱵᱟᱨ ᱵᱟᱹᱴᱤ ᱡᱚᱲ ᱠᱷᱮᱞᱚᱸᱰ',
-          objective: 'Physically combine objects from two containers to find the sum.',
+          objective:
+              'Physically combine objects from two containers to find the sum.',
           teacherInstruction:
               'Put 4 sticks in bowl A and 3 sticks in bowl B. Ask students to pour into bowl C and count.',
           studentInstruction:
               'Pour the sticks together into the big bowl and write the addition sentence on your slate.',
-          contentHi: 'छात्र दो कटोरियों की तीलियों को एक साथ मिलाकर कुल जोड़ निकालेंगे।',
-          contentSat: 'ᱯᱟᱹᱴᱷᱩᱣᱟᱹ ᱠᱚ ᱵᱟᱨ ᱵᱟᱹᱴᱤ ᱨᱮᱱᱟᱜ ᱠᱟᱹᱴᱷᱤ ᱢᱤᱫ ᱴᱷᱮᱱ ᱢᱮᱥᱟ ᱠᱟᱛᱮ ᱡᱚᱛᱚ ᱛᱮ ᱠᱚ ᱦᱤᱥᱟᱹᱵᱟ ᱾',
-          materialsNeeded: ['Small bowls/cups', 'Matchsticks/twigs', 'Slates and chalk'],
+          contentHi:
+              'छात्र दो कटोरियों की तीलियों को एक साथ मिलाकर कुल जोड़ निकालेंगे।',
+          contentSat:
+              'ᱯᱟᱹᱴᱷᱩᱣᱟᱹ ᱠᱚ ᱵᱟᱨ ᱵᱟᱹᱴᱤ ᱨᱮᱱᱟᱜ ᱠᱟᱹᱴᱷᱤ ᱢᱤᱫ ᱴᱷᱮᱱ ᱢᱮᱥᱟ ᱠᱟᱛᱮ ᱡᱚᱛᱚ ᱛᱮ ᱠᱚ ᱦᱤᱥᱟᱹᱵᱟ ᱾',
+          materialsNeeded: [
+            'Small bowls/cups',
+            'Matchsticks/twigs',
+            'Slates and chalk',
+          ],
           durationMinutes: 20,
         ),
       ],
@@ -897,8 +942,10 @@ class CurriculumGeneratorService {
         TeacherScriptStep(
           stepNumber: 1,
           phaseName: 'Visual Quantity Contrast (मात्रा तुलना)',
-          dialogueHi: 'इस ढेर में 7 बेर हैं और इस ढेर में 3 बेर। किसमें ज्यादा हैं? 7 में!',
-          dialogueSat: 'ᱱᱚᱣᱟ ᱜᱟᱫᱮᱞ ᱨᱮ ᱗ ᱡᱟᱹᱱᱩᱢ ᱟᱨ ᱱᱚᱣᱟ ᱨᱮ ᱓ ᱡᱟᱹᱱᱩᱢ ᱾ ᱚᱠᱟ ᱨᱮ ᱰᱷᱮᱨ ᱢᱮᱱᱟᱜᱼᱟ? ᱗ ᱨᱮ!',
+          dialogueHi:
+              'इस ढेर में 7 बेर हैं और इस ढेर में 3 बेर। किसमें ज्यादा हैं? 7 में!',
+          dialogueSat:
+              'ᱱᱚᱣᱟ ᱜᱟᱫᱮᱞ ᱨᱮ ᱗ ᱡᱟᱹᱱᱩᱢ ᱟᱨ ᱱᱚᱣᱟ ᱨᱮ ᱓ ᱡᱟᱹᱱᱩᱢ ᱾ ᱚᱠᱟ ᱨᱮ ᱰᱷᱮᱨ ᱢᱮᱱᱟᱜᱼᱟ? ᱗ ᱨᱮ!',
           teacherAction:
               'Display two piles of fruits and introduce vocabulary for greater (ᱰᱷᱮᱨ) and smaller (ᱠᱚᱢ).',
           audioAsset: 'assets/audio/santali_short_phulmani.wav',
@@ -914,8 +961,10 @@ class CurriculumGeneratorService {
               'Hold up two numbers (e.g., 8 and 5). Have students make crocodile jaws opening toward the bigger number.',
           studentInstruction:
               'Show your arms opening toward the bigger number and shout "ᱰᱷᱮᱨ" (Greater!).',
-          contentHi: 'छात्र दो संख्याओं में से बड़ी संख्या की ओर मुँह खोलकर बड़ा/छोटा बताएंगे।',
-          contentSat: 'ᱯᱟᱹᱴᱷᱩᱣᱟᱹ ᱠᱚ ᱞᱟᱹᱴᱩ ᱮᱞ ᱥᱮᱫ ᱛᱤ ᱢᱮᱞᱟᱣ ᱠᱟᱛᱮ "ᱰᱷᱮᱨ" ᱠᱚ ᱨᱚᱲᱟ ᱾',
+          contentHi:
+              'छात्र दो संख्याओं में से बड़ी संख्या की ओर मुँह खोलकर बड़ा/छोटा बताएंगे।',
+          contentSat:
+              'ᱯᱟᱹᱴᱷᱩᱣᱟᱹ ᱠᱚ ᱞᱟᱹᱴᱩ ᱮᱞ ᱥᱮᱫ ᱛᱤ ᱢᱮᱞᱟᱣ ᱠᱟᱛᱮ "ᱰᱷᱮᱨ" ᱠᱚ ᱨᱚᱲᱟ ᱾',
           materialsNeeded: ['Comparison cards with > and < signs'],
           durationMinutes: 15,
         ),
@@ -983,8 +1032,10 @@ class CurriculumGeneratorService {
         TeacherScriptStep(
           stepNumber: 1,
           phaseName: 'Inverse Operations Concept (जोड़ और घटाव का संबंध)',
-          dialogueHi: 'यदि पेड़ पर 8 चिड़ियाँ थीं और 3 उड़ गईं, तो 5 बचीं (8 - 3 = 5)। यदि 3 वापस आ गईं, तो फिर से 8 हो गईं (5 + 3 = 8)।',
-          dialogueSat: 'ᱡᱩᱫᱤ ᱫᱟᱨᱮ ᱨᱮ ᱘ ᱪᱮᱬᱮ ᱠᱚ ᱛᱟᱦᱮᱸ ᱠᱟᱱᱟ ᱟᱨ ᱓ ᱠᱚ ᱩᱰᱟᱹᱣ ᱮᱱᱟ, ᱛᱚᱵᱮ ᱕ ᱥᱟᱨᱮᱡ ᱮᱱᱟ (᱘ - ᱓ = ᱕) ᱾ ᱡᱩᱫᱤ ᱓ ᱠᱚ ᱨᱩᱣᱟᱹᱲ ᱦᱮᱡ ᱮᱱᱟ, ᱟᱨᱦᱚᱸ ᱘ ᱦᱩᱭ ᱮᱱᱟ (᱕ + ᱓ = ᱘) ᱾',
+          dialogueHi:
+              'यदि पेड़ पर 8 चिड़ियाँ थीं और 3 उड़ गईं, तो 5 बचीं (8 - 3 = 5)। यदि 3 वापस आ गईं, तो फिर से 8 हो गईं (5 + 3 = 8)।',
+          dialogueSat:
+              'ᱡᱩᱫᱤ ᱫᱟᱨᱮ ᱨᱮ ᱘ ᱪᱮᱬᱮ ᱠᱚ ᱛᱟᱦᱮᱸ ᱠᱟᱱᱟ ᱟᱨ ᱓ ᱠᱚ ᱩᱰᱟᱹᱣ ᱮᱱᱟ, ᱛᱚᱵᱮ ᱕ ᱥᱟᱨᱮᱡ ᱮᱱᱟ (᱘ - ᱓ = ᱕) ᱾ ᱡᱩᱫᱤ ᱓ ᱠᱚ ᱨᱩᱣᱟᱹᱲ ᱦᱮᱡ ᱮᱱᱟ, ᱟᱨᱦᱚᱸ ᱘ ᱦᱩᱭ ᱮᱱᱟ (᱕ + ᱓ = ᱘) ᱾',
           teacherAction:
               'Draw tree with birds on the board, demonstrating removal and addition.',
           audioAsset: 'assets/audio/santali_longer_sido.wav',
@@ -995,13 +1046,16 @@ class CurriculumGeneratorService {
           activityNumber: 1,
           activityNameHi: 'टोकन बैंक खेल (Classroom Token Bank)',
           activityNameSat: 'ᱴᱳᱠᱮᱱ ᱵᱮᱸᱠ ᱠᱷᱮᱞᱚᱸᱰ',
-          objective: 'Practice combined addition and subtraction with trade tokens.',
+          objective:
+              'Practice combined addition and subtraction with trade tokens.',
           teacherInstruction:
               'Give 9 tokens to each student. Call out events: "+2 tokens from teacher", "-4 tokens for book".',
           studentInstruction:
               'Perform the addition/subtraction on your desk and announce your remaining balance in Santali.',
-          contentHi: 'छात्र टोकनों के माध्यम से जोड़ और घटाव की मिली-जुली संक्रियाएँ करेंगे।',
-          contentSat: 'ᱯᱟᱹᱴᱷᱩᱣᱟᱹ ᱠᱚ ᱴᱳᱠᱮᱱ ᱛᱮ ᱡᱚᱲ ᱟᱨ ᱠᱟᱹᱴ ᱢᱮᱥᱟ ᱠᱟᱹᱢᱤ ᱠᱚ ᱯᱩᱨᱟᱹᱣᱟ ᱾',
+          contentHi:
+              'छात्र टोकनों के माध्यम से जोड़ और घटाव की मिली-जुली संक्रियाएँ करेंगे।',
+          contentSat:
+              'ᱯᱟᱹᱴᱷᱩᱣᱟᱹ ᱠᱚ ᱴᱳᱠᱮᱱ ᱛᱮ ᱡᱚᱲ ᱟᱨ ᱠᱟᱹᱴ ᱢᱮᱥᱟ ᱠᱟᱹᱢᱤ ᱠᱚ ᱯᱩᱨᱟᱹᱣᱟ ᱾',
           materialsNeeded: ['10 plastic coins/tokens per student'],
           durationMinutes: 20,
         ),
@@ -1016,8 +1070,10 @@ class CurriculumGeneratorService {
           optionsHi: ['7 (सात)', '5 (पाँच)', '8 (आठ)'],
           optionsSat: ['᱗ (ᱮᱭᱟᱭ)', '᱕ (ᱢᱚᱬᱮ)', '᱘ (ᱤᱨᱟᱹᱞ)'],
           correctOptionIndex: 0,
-          explanationHi: '9 में से 4 घटाने पर 5 आता है, और 5 में 2 जोड़ने पर 7 आता है।',
-          explanationSat: '᱙ ᱠᱷᱚᱱ ᱔ ᱠᱟᱹᱴ ᱞᱮᱠᱷᱟᱱ ᱕ ᱟᱨ ᱕ ᱥᱟᱶ ᱒ ᱡᱚᱲ ᱞᱮᱠᱷᱟᱱ ᱗ ᱦᱩᱭᱩᱜᱼᱟ ᱾',
+          explanationHi:
+              '9 में से 4 घटाने पर 5 आता है, और 5 में 2 जोड़ने पर 7 आता है।',
+          explanationSat:
+              '᱙ ᱠᱷᱚᱱ ᱔ ᱠᱟᱹᱴ ᱞᱮᱠᱷᱟᱱ ᱕ ᱟᱨ ᱕ ᱥᱟᱶ ᱒ ᱡᱚᱲ ᱞᱮᱠᱷᱟᱱ ᱗ ᱦᱩᱭᱩᱜᱼᱟ ᱾',
           learningOutcome: 'FLN-M3-01: Fluent Addition and Subtraction',
         ),
       ],
@@ -1065,8 +1121,10 @@ class CurriculumGeneratorService {
         TeacherScriptStep(
           stepNumber: 1,
           phaseName: 'Pattern Discovery (पैटर्न की पहचान)',
-          dialogueHi: 'बच्चों, ध्यान से देखिए: 2, 4, 6, 8, 10! हम हर बार 2 कदम आगे कूद रहे हैं।',
-          dialogueSat: 'ᱜᱤᱫᱽᱨᱟᱹ ᱠᱚ, ᱫᱷᱮᱭᱟᱱ ᱛᱮ ᱧᱮᱞ ᱯᱮ: ᱒, ᱔, ᱖, ᱘, ᱑᱐! ᱟᱵᱚ ᱡᱟᱣ ᱫᱷᱟᱣ ᱒ ᱫᱷᱟᱯ ᱞᱟᱦᱟ ᱥᱮᱫ ᱵᱚᱱ ᱫᱚᱱ ᱮᱫᱟ ᱾',
+          dialogueHi:
+              'बच्चों, ध्यान से देखिए: 2, 4, 6, 8, 10! हम हर बार 2 कदम आगे कूद रहे हैं।',
+          dialogueSat:
+              'ᱜᱤᱫᱽᱨᱟᱹ ᱠᱚ, ᱫᱷᱮᱭᱟᱱ ᱛᱮ ᱧᱮᱞ ᱯᱮ: ᱒, ᱔, ᱖, ᱘, ᱑᱐! ᱟᱵᱚ ᱡᱟᱣ ᱫᱷᱟᱣ ᱒ ᱫᱷᱟᱯ ᱞᱟᱦᱟ ᱥᱮᱫ ᱵᱚᱱ ᱫᱚᱱ ᱮᱫᱟ ᱾',
           teacherAction:
               'Hop along chalk circles on the floor drawn at numbers 2, 4, 6, 8, 10.',
           audioAsset: 'assets/audio/santali_numbers_phulmani.wav',
@@ -1077,7 +1135,8 @@ class CurriculumGeneratorService {
           activityNumber: 1,
           activityNameHi: 'मेंढक कूद पैटर्न खेल (Frog Hop Pattern)',
           activityNameSat: 'ᱪᱮᱛᱮ ᱫᱚᱱ ᱯᱮᱴᱟᱨᱱ ᱠᱷᱮᱞᱚᱸᱰ',
-          objective: 'Extend a +2 growing pattern across classroom stepping stones.',
+          objective:
+              'Extend a +2 growing pattern across classroom stepping stones.',
           teacherInstruction:
               'Draw numbers 1 to 10 on the floor. Ask children to hop only on even numbers: 2, 4, 6, 8, 10.',
           studentInstruction:
@@ -1091,9 +1150,11 @@ class CurriculumGeneratorService {
       assessmentQuestions: const [
         GeneratedAssessmentQuestion(
           id: 'G3-PAT-01',
-          questionEn: 'What is the next number in the pattern: 2, 4, 6, 8, [ ? ]',
+          questionEn:
+              'What is the next number in the pattern: 2, 4, 6, 8, [ ? ]',
           questionHi: 'पैटर्न में अगली संख्या क्या होगी: 2, 4, 6, 8, [ ? ]',
-          questionSat: 'ᱱᱚᱣᱟ ᱯᱮᱴᱟᱨᱱ ᱨᱮ ᱛᱟᱭᱚᱢ ᱮᱞ ᱫᱚ ᱪᱮᱫ ᱦᱩᱭᱩᱜᱼᱟ: ᱒, ᱔, ᱖, ᱘, [ ? ]',
+          questionSat:
+              'ᱱᱚᱣᱟ ᱯᱮᱴᱟᱨᱱ ᱨᱮ ᱛᱟᱭᱚᱢ ᱮᱞ ᱫᱚ ᱪᱮᱫ ᱦᱩᱭᱩᱜᱼᱟ: ᱒, ᱔, ᱖, ᱘, [ ? ]',
           questionType: 'Pattern Prediction',
           optionsHi: ['9 (नौ)', '10 (दस)', '12 (बारह)'],
           optionsSat: ['᱙ (ᱟᱨᱮ)', '᱑᱐ (ᱜᱮᱞ)', '᱑᱒ (ᱜᱮᱞ ᱵᱟᱨ)'],
@@ -1147,8 +1208,10 @@ class CurriculumGeneratorService {
         TeacherScriptStep(
           stepNumber: 1,
           phaseName: 'Contextual Story Math (गाँव के हाट की कहानी)',
-          dialogueHi: 'सोमू हाट गया। उसने 4 अमरूद और 3 केले खरीदे। सोमू के पास कुल कितने फल हुए? 7 फल!',
-          dialogueSat: 'ᱥᱳᱢᱩ ᱦᱟᱴ ᱮ ᱥᱮᱱ ᱮᱱᱟ ᱾ ᱩᱱᱤ ᱔ ᱟᱢᱨᱩᱫᱽ ᱟᱨ ᱓ ᱠᱟᱭᱨᱟ ᱠᱤᱨᱤᱧ ᱠᱮᱫᱟ ᱾ ᱥᱳᱢᱩ ᱴᱷᱮᱱ ᱡᱚᱛᱚ ᱛᱮ ᱛᱤᱱᱟᱹᱜ ᱡᱚ ᱦᱩᱭ ᱮᱱᱟ? ᱗ (ᱮᱭᱟᱭ) ᱡᱚ!',
+          dialogueHi:
+              'सोमू हाट गया। उसने 4 अमरूद और 3 केले खरीदे। सोमू के पास कुल कितने फल हुए? 7 फल!',
+          dialogueSat:
+              'ᱥᱳᱢᱩ ᱦᱟᱴ ᱮ ᱥᱮᱱ ᱮᱱᱟ ᱾ ᱩᱱᱤ ᱔ ᱟᱢᱨᱩᱫᱽ ᱟᱨ ᱓ ᱠᱟᱭᱨᱟ ᱠᱤᱨᱤᱧ ᱠᱮᱫᱟ ᱾ ᱥᱳᱢᱩ ᱴᱷᱮᱱ ᱡᱚᱛᱚ ᱛᱮ ᱛᱤᱱᱟᱹᱜ ᱡᱚ ᱦᱩᱭ ᱮᱱᱟ? ᱗ (ᱮᱭᱟᱭ) ᱡᱚ!',
           teacherAction:
               'Read story expressively and guide students to convert word clues into math equations.',
           audioAsset: 'assets/audio/santali_educational_sido.wav',
@@ -1159,23 +1222,33 @@ class CurriculumGeneratorService {
           activityNumber: 1,
           activityNameHi: 'हाट-बाजार अभिनय खेल (Village Market Roleplay)',
           activityNameSat: 'ᱦᱟᱴ ᱵᱟᱡᱟᱨ ᱠᱷᱮᱞᱚᱸᱰ',
-          objective: 'Translate situational verbal transactions into addition/subtraction.',
+          objective:
+              'Translate situational verbal transactions into addition/subtraction.',
           teacherInstruction:
               'Set up a market stall with fruits and clay coins. Have student pairs roleplay buying and selling.',
           studentInstruction:
               'Act as buyer/seller, formulate the math word sentence, and compute the total.',
-          contentHi: 'छात्र हाट-बाजार का अभिनय करके वस्तुओं की खरीद-बिक्री का गणित हल करेंगे।',
-          contentSat: 'ᱯᱟᱹᱴᱷᱩᱣᱟᱹ ᱠᱚ ᱦᱟᱴ ᱨᱮ ᱡᱤᱱᱤᱥ ᱠᱤᱨᱤᱧ-ᱟᱹᱠᱷᱨᱤᱧ ᱨᱮᱱᱟᱜ ᱠᱟᱛᱷᱟ ᱦᱤᱥᱟᱹᱵᱽ ᱠᱚ ᱞᱟᱹᱭᱟ ᱾',
-          materialsNeeded: ['Pretend fruits', 'Paper money / clay tokens', 'Market basket'],
+          contentHi:
+              'छात्र हाट-बाजार का अभिनय करके वस्तुओं की खरीद-बिक्री का गणित हल करेंगे।',
+          contentSat:
+              'ᱯᱟᱹᱴᱷᱩᱣᱟᱹ ᱠᱚ ᱦᱟᱴ ᱨᱮ ᱡᱤᱱᱤᱥ ᱠᱤᱨᱤᱧ-ᱟᱹᱠᱷᱨᱤᱧ ᱨᱮᱱᱟᱜ ᱠᱟᱛᱷᱟ ᱦᱤᱥᱟᱹᱵᱽ ᱠᱚ ᱞᱟᱹᱭᱟ ᱾',
+          materialsNeeded: [
+            'Pretend fruits',
+            'Paper money / clay tokens',
+            'Market basket',
+          ],
           durationMinutes: 25,
         ),
       ],
       assessmentQuestions: const [
         GeneratedAssessmentQuestion(
           id: 'G3-WRD-01',
-          questionEn: 'Rani had 8 mangoes. She gave 3 mangoes to her friend. How many mangoes are left?',
-          questionHi: 'रानी के पास 8 आम थे। उसने 3 आम अपनी सहेली को दिए। अब रानी के पास कितने आम बचे?',
-          questionSat: 'ᱨᱟᱹᱱᱤ ᱴᱷᱮᱱ ᱘ ᱩᱞ ᱛᱟᱦᱮᱸ ᱠᱟᱱᱟ ᱾ ᱩᱱᱤ ᱓ ᱩᱞ ᱜᱟᱛᱮ ᱮᱢᱟᱫᱮᱭᱟ ᱾ ᱱᱤᱛᱚᱜ ᱨᱟᱹᱱᱤ ᱴᱷᱮᱱ ᱛᱤᱱᱟᱹᱜ ᱩᱞ ᱥᱟᱨᱮᱡ ᱮᱱᱟ?',
+          questionEn:
+              'Rani had 8 mangoes. She gave 3 mangoes to her friend. How many mangoes are left?',
+          questionHi:
+              'रानी के पास 8 आम थे। उसने 3 आम अपनी सहेली को दिए। अब रानी के पास कितने आम बचे?',
+          questionSat:
+              'ᱨᱟᱹᱱᱤ ᱴᱷᱮᱱ ᱘ ᱩᱞ ᱛᱟᱦᱮᱸ ᱠᱟᱱᱟ ᱾ ᱩᱱᱤ ᱓ ᱩᱞ ᱜᱟᱛᱮ ᱮᱢᱟᱫᱮᱭᱟ ᱾ ᱱᱤᱛᱚᱜ ᱨᱟᱹᱱᱤ ᱴᱷᱮᱱ ᱛᱤᱱᱟᱹᱜ ᱩᱞ ᱥᱟᱨᱮᱡ ᱮᱱᱟ?',
           questionType: 'Word Problem Application',
           optionsHi: ['5 आम (8 - 3 = 5)', '6 आम', '11 आम'],
           optionsSat: ['᱕ ᱩᱞ (᱘ - ᱓ = ᱕)', '᱖ ᱩᱞ', '᱑᱑ ᱩᱞ'],

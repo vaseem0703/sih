@@ -4,6 +4,7 @@ import '../models/translation_result.dart';
 import '../services/speech_service.dart';
 import '../services/translation_service.dart';
 import '../services/tts_service.dart';
+import '../services/on_device_asr_service.dart';
 
 class LiveClassScreen extends StatefulWidget {
   final SpeechService speechService;
@@ -21,7 +22,8 @@ class LiveClassScreen extends StatefulWidget {
   State<LiveClassScreen> createState() => _LiveClassScreenState();
 }
 
-class _LiveClassScreenState extends State<LiveClassScreen> with SingleTickerProviderStateMixin {
+class _LiveClassScreenState extends State<LiveClassScreen>
+    with SingleTickerProviderStateMixin {
   final TextEditingController _textController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
 
@@ -32,6 +34,7 @@ class _LiveClassScreenState extends State<LiveClassScreen> with SingleTickerProv
   bool _isListening = false;
   bool _isTranslating = false;
   String _liveSpokenText = '';
+  String _micStatusMessage = ''; // live feedback under mic
 
   final List<TranslationResult> _messages = [];
 
@@ -51,10 +54,27 @@ class _LiveClassScreenState extends State<LiveClassScreen> with SingleTickerProv
     'पानी पियो',
   ];
 
+  final OnDeviceAsrService _onDeviceAsrService = OnDeviceAsrService();
+
   @override
   void initState() {
     super.initState();
-    widget.speechService.requestMicPermission();
+    widget.speechService.warmUp();
+    _checkOnDeviceModel();
+  }
+
+  void _checkOnDeviceModel() async {
+    await _onDeviceAsrService.checkModelStatus();
+    if (mounted) setState(() {});
+  }
+
+  void _downloadOnDeviceModel() async {
+    await _onDeviceAsrService.downloadModel(
+      onProgress: (progress, status) {
+        if (mounted) setState(() {});
+      },
+    );
+    if (mounted) setState(() {});
   }
 
   @override
@@ -88,10 +108,11 @@ class _LiveClassScreenState extends State<LiveClassScreen> with SingleTickerProv
     final clean = text.trim();
     if (clean.isEmpty) return;
 
-    _textController.clear();
+    _textController.text = clean;
+    debugPrint('[FLUTTER ASR] UI TEXT UPDATED: "$clean"');
+
     setState(() {
       _isTranslating = true;
-      _liveSpokenText = '';
     });
 
     try {
@@ -107,6 +128,14 @@ class _LiveClassScreenState extends State<LiveClassScreen> with SingleTickerProv
           _isTranslating = false;
         });
         _scrollToBottom();
+
+        debugPrint('==================================================');
+        debugPrint('[PIPELINE DEBUG]');
+        debugPrint('ASR HINDI TEXT: "$clean"');
+        debugPrint('TRANSLATION REQUEST: "$clean"');
+        debugPrint('TRANSLATION RESPONSE: "${result.santaliOlChiki}"');
+        debugPrint('SANTALI TEXT: "${result.santaliOlChiki}"');
+        debugPrint('==================================================');
 
         // Automatically speak aloud via phone speaker / classroom sound system
         if (_autoPlaySpeaker) {
@@ -125,34 +154,44 @@ class _LiveClassScreenState extends State<LiveClassScreen> with SingleTickerProv
 
   void _toggleLiveMic() async {
     if (_isListening) {
+      // ── STOP path ──────────────────────────────────────────────
       setState(() {
         _isListening = false;
         _isTranslating = true;
+        _micStatusMessage = 'Processing...';
       });
 
       final asrText = await widget.speechService.stopListeningAndTranscribe(
         currentRecognizedText: _liveSpokenText,
         onStatusUpdate: (status) {
-          if (mounted && status.isNotEmpty) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text(status), duration: const Duration(milliseconds: 1000)),
-            );
-          }
+          if (mounted) setState(() => _micStatusMessage = status);
         },
       );
 
-      final textToProcess = (asrText != null && asrText.isNotEmpty) ? asrText : _liveSpokenText;
-      if (textToProcess.isNotEmpty) {
-        _processTeacherSpeech(textToProcess);
+      debugPrint('[FLUTTER UI] TEXT RECEIVED: "$asrText"');
+      if (mounted) setState(() => _micStatusMessage = '');
+
+      if (asrText != null && asrText.isNotEmpty) {
+        debugPrint('[FLUTTER UI] TEXT ASSIGNED: "$asrText"');
+        debugPrint('[FLUTTER UI] TEXT DISPLAYED: "$asrText"');
+        _processTeacherSpeech(asrText);
       } else {
+        debugPrint('[FLUTTER UI] RESULT IS EMPTY — CLEARING DISPLAY');
         if (mounted) {
-          setState(() => _isTranslating = false);
+          setState(() {
+            _isTranslating = false;
+            _textController.text = '';
+            _micStatusMessage = 'Speech not recognized. Try speaking louder.';
+          });
         }
       }
     } else {
+      // ── START path ─────────────────────────────────────────────
       setState(() {
         _isListening = true;
         _liveSpokenText = '';
+        _textController.text = '';
+        _micStatusMessage = 'Starting...';
       });
 
       final success = await widget.speechService.startListening(
@@ -161,26 +200,131 @@ class _LiveClassScreenState extends State<LiveClassScreen> with SingleTickerProv
             setState(() {
               _liveSpokenText = spoken;
               _textController.text = spoken;
+              _micStatusMessage = '';
             });
           }
         },
         onStatusUpdate: (msg) {
-          if (mounted && msg.isNotEmpty && !msg.startsWith("Listening")) {
+          if (!mounted) return;
+          setState(() => _micStatusMessage = msg);
+          // Show persistent errors as snackbar too
+          if (msg.isNotEmpty &&
+              !msg.startsWith('Listening') &&
+              !msg.startsWith('Starting') &&
+              !msg.startsWith('Processing')) {
             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text(msg), duration: const Duration(seconds: 2)),
+              SnackBar(
+                content: Text(msg),
+                duration: const Duration(seconds: 4),
+              ),
             );
           }
         },
       );
 
       if (!success && mounted) {
-        setState(() => _isListening = false);
+        setState(() {
+          _isListening = false;
+          _micStatusMessage = '';
+        });
+      } else if (mounted) {
+        setState(() => _micStatusMessage = 'Listening — speak Hindi...');
       }
     }
   }
 
   String _getLangName(String code) {
-    return _languages.firstWhere((l) => l['code'] == code, orElse: () => {'name': code})['name']!;
+    return _languages.firstWhere(
+      (l) => l['code'] == code,
+      orElse: () => {'name': code},
+    )['name']!;
+  }
+
+  Widget _buildOnDeviceModelBanner() {
+    final status = _onDeviceAsrService.status;
+    if (status == OnDeviceAsrStatus.ready) {
+      return Container(
+        color: Colors.green.shade50,
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+        child: Row(
+          children: const [
+            Icon(Icons.offline_pin, color: Colors.green, size: 18),
+            SizedBox(width: 8),
+            Text(
+              'Hindi Offline ASR Ready (100% On-Device)',
+              style: TextStyle(
+                color: Colors.green,
+                fontWeight: FontWeight.bold,
+                fontSize: 12,
+              ),
+            ),
+          ],
+        ),
+      );
+    } else if (status == OnDeviceAsrStatus.downloading) {
+      return Container(
+        color: Colors.amber.shade50,
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        child: Row(
+          children: [
+            const SizedBox(
+              width: 16,
+              height: 16,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                _onDeviceAsrService.statusMessage,
+                style: const TextStyle(
+                  color: Colors.orange,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 12,
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    } else {
+      return Container(
+        color: Colors.orange.shade50,
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+        child: Row(
+          children: [
+            const Icon(
+              Icons.download_for_offline,
+              color: Colors.orange,
+              size: 18,
+            ),
+            const SizedBox(width: 8),
+            const Expanded(
+              child: Text(
+                'Hindi offline speech model not installed.',
+                style: TextStyle(color: Colors.deepOrange, fontSize: 12),
+              ),
+            ),
+            ElevatedButton(
+              onPressed: _downloadOnDeviceModel,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.orange,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
+                minimumSize: Size.zero,
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+              child: const Text(
+                'Download Model (150MB)',
+                style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
   }
 
   @override
@@ -189,6 +333,7 @@ class _LiveClassScreenState extends State<LiveClassScreen> with SingleTickerProv
       backgroundColor: AppColors.background,
       body: Column(
         children: [
+          _buildOnDeviceModelBanner(),
           // Top Language Selector & Auto-Speaker Bar
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
@@ -225,7 +370,10 @@ class _LiveClassScreenState extends State<LiveClassScreen> with SingleTickerProv
                               value: l['code'],
                               child: Text(
                                 l['name']!,
-                                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12.5),
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 12.5,
+                                ),
                                 overflow: TextOverflow.ellipsis,
                               ),
                             );
@@ -242,7 +390,11 @@ class _LiveClassScreenState extends State<LiveClassScreen> with SingleTickerProv
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 6),
                     child: IconButton(
-                      icon: const Icon(Icons.swap_horiz_rounded, color: AppColors.purple, size: 24),
+                      icon: const Icon(
+                        Icons.swap_horiz_rounded,
+                        color: AppColors.purple,
+                        size: 24,
+                      ),
                       tooltip: 'Swap Languages',
                       onPressed: _swapLanguages,
                     ),
@@ -266,7 +418,10 @@ class _LiveClassScreenState extends State<LiveClassScreen> with SingleTickerProv
                               value: l['code'],
                               child: Text(
                                 l['name']!,
-                                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12.5),
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 12.5,
+                                ),
                                 overflow: TextOverflow.ellipsis,
                               ),
                             );
@@ -287,7 +442,11 @@ class _LiveClassScreenState extends State<LiveClassScreen> with SingleTickerProv
                       setState(() => _autoPlaySpeaker = !_autoPlaySpeaker);
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
-                          content: Text(_autoPlaySpeaker ? '🔊 Auto-Speaker ON (Voice speaks aloud automatically)' : '🔇 Auto-Speaker OFF'),
+                          content: Text(
+                            _autoPlaySpeaker
+                                ? '🔊 Auto-Speaker ON (Voice speaks aloud automatically)'
+                                : '🔇 Auto-Speaker OFF',
+                          ),
                           duration: const Duration(seconds: 1),
                         ),
                       );
@@ -296,12 +455,18 @@ class _LiveClassScreenState extends State<LiveClassScreen> with SingleTickerProv
                     child: Container(
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
-                        color: _autoPlaySpeaker ? AppColors.purpleLight : Colors.grey.shade200,
+                        color: _autoPlaySpeaker
+                            ? AppColors.purpleLight
+                            : Colors.grey.shade200,
                         borderRadius: BorderRadius.circular(10),
                       ),
                       child: Icon(
-                        _autoPlaySpeaker ? Icons.volume_up_rounded : Icons.volume_off_rounded,
-                        color: _autoPlaySpeaker ? AppColors.purple : Colors.grey.shade600,
+                        _autoPlaySpeaker
+                            ? Icons.volume_up_rounded
+                            : Icons.volume_off_rounded,
+                        color: _autoPlaySpeaker
+                            ? AppColors.purple
+                            : Colors.grey.shade600,
                         size: 20,
                       ),
                     ),
@@ -326,23 +491,39 @@ class _LiveClassScreenState extends State<LiveClassScreen> with SingleTickerProv
                               color: AppColors.purpleLight,
                               shape: BoxShape.circle,
                             ),
-                            child: const Icon(Icons.record_voice_over_rounded, size: 48, color: AppColors.purple),
+                            child: const Icon(
+                              Icons.record_voice_over_rounded,
+                              size: 48,
+                              color: AppColors.purple,
+                            ),
                           ),
                           const SizedBox(height: 16),
                           const Text(
                             'Teacher Live Voice Assistant',
-                            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppColors.navy),
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.navy,
+                            ),
                           ),
                           const SizedBox(height: 6),
                           Text(
                             'Speak in Hindi — the phone instantly translates and speaks aloud in ${_getLangName(_tgtLangCode)} for your classroom.',
                             textAlign: TextAlign.center,
-                            style: const TextStyle(color: AppColors.textSecondary, fontSize: 13.5, height: 1.4),
+                            style: const TextStyle(
+                              color: AppColors.textSecondary,
+                              fontSize: 13.5,
+                              height: 1.4,
+                            ),
                           ),
                           const SizedBox(height: 24),
                           const Text(
                             'Quick Classroom Phrases:',
-                            style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.textMuted),
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.textMuted,
+                            ),
                           ),
                           const SizedBox(height: 10),
                           Wrap(
@@ -351,7 +532,14 @@ class _LiveClassScreenState extends State<LiveClassScreen> with SingleTickerProv
                             alignment: WrapAlignment.center,
                             children: _classroomQuickPrompts.map((prompt) {
                               return ActionChip(
-                                label: Text(prompt, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.purple)),
+                                label: Text(
+                                  prompt,
+                                  style: const TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w600,
+                                    color: AppColors.purple,
+                                  ),
+                                ),
                                 backgroundColor: Colors.white,
                                 side: const BorderSide(color: AppColors.line),
                                 elevation: 1,
@@ -395,16 +583,25 @@ class _LiveClassScreenState extends State<LiveClassScreen> with SingleTickerProv
                                 children: [
                                   Expanded(
                                     child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
                                       children: [
                                         Text(
                                           _getLangName(_srcLangCode),
-                                          style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.textMuted),
+                                          style: const TextStyle(
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.bold,
+                                            color: AppColors.textMuted,
+                                          ),
                                         ),
                                         const SizedBox(height: 2),
                                         Text(
                                           item.originalHindi,
-                                          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: AppColors.navy),
+                                          style: const TextStyle(
+                                            fontSize: 15,
+                                            fontWeight: FontWeight.bold,
+                                            color: AppColors.navy,
+                                          ),
                                         ),
                                       ],
                                     ),
@@ -414,8 +611,13 @@ class _LiveClassScreenState extends State<LiveClassScreen> with SingleTickerProv
                                       backgroundColor: AppColors.greenLight,
                                       foregroundColor: AppColors.greenOk,
                                       elevation: 0,
-                                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 10,
+                                        vertical: 6,
+                                      ),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(10),
+                                      ),
                                     ),
                                     onPressed: () {
                                       widget.ttsService.generateSantaliSpeech(
@@ -423,8 +625,18 @@ class _LiveClassScreenState extends State<LiveClassScreen> with SingleTickerProv
                                         speaker: 'Phulmani',
                                       );
                                     },
-                                    icon: const Icon(Icons.volume_up_rounded, size: 16, color: AppColors.greenOk),
-                                    label: const Text('Speak', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                                    icon: const Icon(
+                                      Icons.volume_up_rounded,
+                                      size: 16,
+                                      color: AppColors.greenOk,
+                                    ),
+                                    label: const Text(
+                                      'Speak',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 12,
+                                      ),
+                                    ),
                                   ),
                                 ],
                               ),
@@ -436,7 +648,11 @@ class _LiveClassScreenState extends State<LiveClassScreen> with SingleTickerProv
                               // Target Translated Vernacular Script
                               Text(
                                 _getLangName(_tgtLangCode),
-                                style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.purple),
+                                style: const TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.purple,
+                                ),
                               ),
                               const SizedBox(height: 4),
                               Text(
@@ -491,11 +707,17 @@ class _LiveClassScreenState extends State<LiveClassScreen> with SingleTickerProv
                       duration: const Duration(milliseconds: 200),
                       padding: const EdgeInsets.all(14),
                       decoration: BoxDecoration(
-                        color: _isListening ? Colors.redAccent : AppColors.purple,
+                        color: _isListening
+                            ? Colors.redAccent
+                            : AppColors.purple,
                         shape: BoxShape.circle,
                         boxShadow: [
                           BoxShadow(
-                            color: (_isListening ? Colors.redAccent : AppColors.purple).withOpacity(0.35),
+                            color:
+                                (_isListening
+                                        ? Colors.redAccent
+                                        : AppColors.purple)
+                                    .withOpacity(0.35),
                             blurRadius: 10,
                             offset: const Offset(0, 3),
                           ),
@@ -523,15 +745,32 @@ class _LiveClassScreenState extends State<LiveClassScreen> with SingleTickerProv
                       child: TextField(
                         controller: _textController,
                         decoration: InputDecoration(
-                          hintText: _isListening ? 'Listening to teacher...' : 'Speak or type classroom instruction...',
+                          hintText: (_isListening && _liveSpokenText.isEmpty)
+                              ? (_micStatusMessage.isNotEmpty
+                                    ? _micStatusMessage
+                                    : 'Listening — speak Hindi...')
+                              : (!_isListening
+                                    ? 'Speak or type classroom instruction...'
+                                    : _liveSpokenText),
                           hintStyle: TextStyle(
-                            color: _isListening ? Colors.redAccent : AppColors.textMuted,
-                            fontWeight: _isListening ? FontWeight.bold : FontWeight.normal,
+                            color: _isListening
+                                ? (_micStatusMessage.contains('denied') ||
+                                          _micStatusMessage.contains(
+                                            'unavailable',
+                                          )
+                                      ? Colors.orange
+                                      : Colors.redAccent)
+                                : AppColors.textMuted,
+                            fontWeight: _isListening
+                                ? FontWeight.bold
+                                : FontWeight.normal,
                             fontSize: 13.5,
                           ),
                           border: InputBorder.none,
                           isDense: true,
-                          contentPadding: const EdgeInsets.symmetric(vertical: 10),
+                          contentPadding: const EdgeInsets.symmetric(
+                            vertical: 10,
+                          ),
                         ),
                         onSubmitted: _processTeacherSpeech,
                       ),
@@ -542,14 +781,23 @@ class _LiveClassScreenState extends State<LiveClassScreen> with SingleTickerProv
 
                   // Send Button
                   IconButton(
-                    onPressed: _isTranslating ? null : () => _processTeacherSpeech(_textController.text),
+                    onPressed: _isTranslating
+                        ? null
+                        : () => _processTeacherSpeech(_textController.text),
                     icon: _isTranslating
                         ? const SizedBox(
                             width: 20,
                             height: 20,
-                            child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.purple),
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: AppColors.purple,
+                            ),
                           )
-                        : const Icon(Icons.send_rounded, color: AppColors.purple, size: 24),
+                        : const Icon(
+                            Icons.send_rounded,
+                            color: AppColors.purple,
+                            size: 24,
+                          ),
                   ),
                 ],
               ),
